@@ -65,7 +65,7 @@ export async function prepareMusicContent(
     ),
   ]);
 
-  // selected artist's tracks are the only correct answers
+  // selected artist's tracks are the only correct answers (including collabs)
   const artistTracks = shuffle(topData.data.filter((t) => t.preview));
 
   // related artists' tracks are only used as distractors
@@ -83,7 +83,10 @@ export async function prepareMusicContent(
     }
   }
 
-  const distractorLabels = [...new Set(distractorTracks.map((t) => trackLabel(t)))];
+  const artistLabels = new Set(artistTracks.map((t) => trackLabel(t)));
+  const distractorLabels = [...new Set(distractorTracks.map((t) => trackLabel(t)))].filter(
+    (l) => !artistLabels.has(l),
+  );
   const usedLabels = new Set<string>();
   const rounds: RoundContent[] = [];
 
@@ -542,6 +545,7 @@ async function fetchLandmarkImage(placeName: string): Promise<string | null> {
     q: placeName,
     license_type: "all",
     page_size: "1",
+    extension: "jpg",
   });
 
   try {

@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   padding: 16px;
-  max-width: 560px;
+  max-width: 720px;
   margin: 0 auto;
   animation: fadeIn 0.3s ease;
 }
@@ -110,10 +110,12 @@
 
 .imageWrapper {
   position: relative;
+  width: 100%;
   border-radius: var(--radius-md);
   overflow: hidden;
   aspect-ratio: 16 / 10;
   box-shadow: var(--shadow-card);
+  background: var(--surface2);
 }
 
 .placeImage {
