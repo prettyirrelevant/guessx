@@ -4,7 +4,8 @@
   flex-direction: column;
   padding: 16px;
   padding-bottom: 60px;
-  max-width: 560px;
+  width: 100%;
+  max-width: 720px;
   margin: 0 auto;
   animation: fadeIn 0.4s ease;
 }
