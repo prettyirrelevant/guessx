@@ -1,0 +1,54 @@
+.container {
+  max-height: 240px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+  padding: 4px;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: 4px;
+  overflow: hidden;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.avatar:hover {
+  border-color: var(--muted);
+  transform: scale(1.08);
+}
+
+.avatar.selected {
+  border-color: var(--accent);
+  box-shadow: var(--glow-accent);
+  transform: scale(1.08);
+}
+
+@media (max-width: 480px) {
+  .container {
+    max-height: 200px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  }
+}

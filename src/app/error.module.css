@@ -1,0 +1,90 @@
+.container {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  text-align: center;
+  max-width: 400px;
+  animation: fadeIn 0.4s ease;
+}
+
+.title {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 800;
+  font-size: 40px;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  margin-bottom: 24px;
+}
+
+.titleX {
+  color: var(--accent);
+}
+
+.code {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 800;
+  font-size: 72px;
+  color: var(--accent3);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.message {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.hint {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.retryBtn {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 24px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  box-shadow: var(--glow-accent);
+}
+
+.retryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(200, 241, 53, 0.4);
+}
+
+.homeLink {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 10px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+}
+
+.homeLink:hover {
+  border-color: var(--accent2);
+  color: var(--text);
+}

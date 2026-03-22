@@ -1,0 +1,196 @@
+.container {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-elevated);
+  animation: scaleIn 0.3s ease;
+}
+
+.roomCode {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 800;
+  font-size: 36px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+  white-space: nowrap;
+}
+
+.roomCode:hover {
+  background: var(--surface2);
+}
+
+.roomCode svg {
+  color: var(--muted);
+  transition: color var(--transition-fast);
+}
+
+.roomCode:hover svg {
+  color: var(--accent);
+}
+
+.hint {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 32px;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 13px;
+  color: var(--muted2);
+  transition: color var(--transition-base);
+}
+
+.step.active {
+  color: var(--accent2);
+}
+
+.step.done {
+  color: var(--accent);
+}
+
+.step.failed {
+  color: var(--accent3);
+}
+
+.stepDot {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+  transition: all var(--transition-base);
+}
+
+.step.active .stepDot {
+  border-color: var(--accent2);
+  box-shadow: var(--glow-accent2);
+  animation: pulse 1.5s ease infinite;
+}
+
+.step.done .stepDot {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.step.failed .stepDot {
+  border-color: var(--accent3);
+  background: var(--accent3);
+  color: var(--bg);
+}
+
+.stepError {
+  margin-left: 40px;
+  margin-top: 6px;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 12px;
+  color: var(--accent3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stepError p {
+  margin: 0;
+}
+
+.retryBtn {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 11px;
+  color: var(--accent3);
+  padding: 4px 12px;
+  border: 1px solid var(--accent3);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.retryBtn:hover {
+  background: var(--accent3);
+  color: var(--bg);
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface2);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.noticeIcon {
+  flex-shrink: 0;
+  color: var(--accent2);
+}
+
+.cancelBtn {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.cancelBtn:hover {
+  border-color: var(--accent3);
+  color: var(--accent3);
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 32px 24px;
+  }
+
+  .roomCode {
+    font-size: 28px;
+    gap: 8px;
+  }
+}

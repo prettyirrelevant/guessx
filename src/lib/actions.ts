@@ -1,0 +1,603 @@
+"use server";
+
+interface Track {
+  id: number;
+  title: string;
+  artist: { name: string };
+  preview: string | null;
+}
+
+interface RoundContent {
+  roundNumber: number;
+  correctAnswer: string;
+  options: string[];
+  mediaUrl: string;
+  mediaTitle?: string;
+  mediaArtist?: string;
+  isFinal: boolean;
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+  return res.json();
+}
+
+function trackLabel(t: Track): string {
+  return `${t.title} — ${t.artist.name}`;
+}
+
+export async function searchArtists(
+  query: string,
+): Promise<{ id: number; name: string; picture_small: string }[]> {
+  if (!query.trim()) return [];
+
+  const data = await fetchJson<{
+    data: { id: number; name: string; picture_small: string }[];
+  }>(`https://api.deezer.com/search/artist?q=${encodeURIComponent(query)}&limit=8`);
+
+  return data.data.map((a) => ({
+    id: a.id,
+    name: a.name,
+    picture_small: a.picture_small,
+  }));
+}
+
+export async function prepareMusicContent(
+  artist: string,
+  totalRounds: number,
+): Promise<RoundContent[]> {
+  const [topData, relatedData] = await Promise.all([
+    fetchJson<{ data: Track[] }>(
+      `https://api.deezer.com/artist/${artist}/top?limit=25`,
+    ),
+    fetchJson<{ data: { id: number; name: string }[] }>(
+      `https://api.deezer.com/artist/${artist}/related?limit=10`,
+    ),
+  ]);
+
+  const allTracks: Track[] = [...topData.data];
+
+  const target = totalRounds + 1;
+  for (const related of shuffle(relatedData.data)) {
+    if (allTracks.length >= target) break;
+
+    try {
+      const data = await fetchJson<{ data: Track[] }>(
+        `https://api.deezer.com/artist/${related.id}/top?limit=5`,
+      );
+      allTracks.push(...data.data);
+    } catch {
+      // skip failed fetches
+    }
+  }
+
+  const validTracks = shuffle(allTracks.filter((t) => t.preview));
+  const usedLabels = new Set<string>();
+  const rounds: RoundContent[] = [];
+
+  for (const track of validTracks) {
+    if (rounds.length >= totalRounds) break;
+
+    const label = trackLabel(track);
+    if (usedLabels.has(label)) continue;
+    usedLabels.add(label);
+
+    const distractors = shuffle(
+      validTracks
+        .filter((t) => trackLabel(t) !== label && !usedLabels.has(trackLabel(t)))
+        .map((t) => trackLabel(t)),
+    ).slice(0, 3);
+
+    if (distractors.length < 3) continue;
+
+    rounds.push({
+      roundNumber: rounds.length + 1,
+      correctAnswer: label,
+      options: shuffle([label, ...distractors]),
+      mediaUrl: track.preview!,
+      mediaTitle: track.title,
+      mediaArtist: track.artist.name,
+      isFinal: rounds.length === totalRounds - 1,
+    });
+  }
+
+  if (rounds.length === 0) {
+    throw new Error("could not fetch enough tracks for this artist");
+  }
+
+  return rounds;
+}
+
+// curated landmarks by country with good wikimedia coverage
+const LANDMARKS: Record<string, string[]> = {
+  US: [
+    "Statue of Liberty", "Golden Gate Bridge", "Mount Rushmore", "Grand Canyon",
+    "Empire State Building", "Hollywood Sign", "Brooklyn Bridge", "Lincoln Memorial",
+    "Space Needle", "Alcatraz Island", "Central Park", "Times Square",
+    "White House", "Hoover Dam", "Niagara Falls", "Yellowstone National Park",
+    "Washington Monument", "Jefferson Memorial", "Flatiron Building", "Liberty Bell",
+    "Gateway Arch", "Pearl Harbor National Memorial", "Griffith Observatory",
+    "Walt Disney World", "Las Vegas Strip", "Chrysler Building",
+    "Independence Hall", "One World Trade Center", "Fenway Park",
+    "Fallingwater", "Hearst Castle", "Biltmore Estate",
+    "Savannah Historic District", "San Antonio Missions", "Devils Tower",
+    "Carlsbad Caverns", "Acadia National Park", "Glacier National Park",
+    "Zion National Park", "Mesa Verde National Park",
+    "Antelope Canyon", "Crater Lake", "Mammoth Cave", "Badlands National Park",
+    "Bryce Canyon National Park", "Dry Tortugas National Park",
+    "Cuyahoga Valley National Park", "Olympic National Park",
+  ],
+  GB: [
+    "Tower of London", "Big Ben", "Stonehenge", "Buckingham Palace",
+    "London Eye", "Tower Bridge", "Windsor Castle", "Edinburgh Castle",
+    "Palace of Westminster", "Roman Baths (Bath)", "Canterbury Cathedral",
+    "St Paul's Cathedral", "Hadrian's Wall", "White Cliffs of Dover", "Oxford University",
+    "Kensington Palace", "Hampton Court Palace", "Albert Memorial",
+    "Natural History Museum, London", "British Museum", "Westminster Abbey",
+    "Royal Albert Hall", "Shakespeare's Globe", "Clifton Suspension Bridge",
+    "York Minster", "Warwick Castle", "Blenheim Palace",
+    "Royal Pavilion", "Trafalgar Square",
+    "Dunstanburgh Castle", "Tintern Abbey", "Eilean Donan Castle",
+    "Callanish Stones", "Glastonbury Tor", "Bodiam Castle",
+    "Fountains Abbey", "Stirling Castle", "Caernarfon Castle",
+    "Durham Cathedral", "Chatsworth House",
+    "Cheddar Gorge", "Skara Brae", "Rievaulx Abbey",
+    "Whitby Abbey", "Fingal's Cave", "Old Man of Storr",
+    "Carrick-a-Rede Rope Bridge", "Malham Cove",
+  ],
+  FR: [
+    "Eiffel Tower", "Louvre Museum", "Notre-Dame de Paris", "Arc de Triomphe",
+    "Palace of Versailles", "Mont Saint-Michel", "Sacré-Cœur", "Pont du Gard",
+    "Château de Chambord", "Moulin Rouge", "Carcassonne", "Sainte-Chapelle",
+    "Place de la Concorde", "Panthéon", "Musée d'Orsay",
+    "Château de Chenonceau", "Les Invalides", "Palais Garnier",
+    "Place des Vosges", "Pont Alexandre III", "Château de Fontainebleau",
+    "Basilica of Saint-Denis", "Arènes de Nîmes", "Hospices de Beaune",
+    "Papal Palace, Avignon", "Château de Vincennes", "Château d'Amboise",
+    "Strasbourg Cathedral", "Dune of Pilat",
+    "Château de Villandry", "Abbaye de Sénanque", "Rocamadour",
+    "Château de Carcassonne", "Gorges du Verdon", "Château de Chantilly",
+    "Basilica of Notre-Dame de Fourvière", "Palais des Papes",
+    "Place Stanislas", "Château de Langeais",
+    "Cirque de Gavarnie", "Aiguille du Midi", "Calanques de Marseille",
+    "Étretat Cliffs", "Carnac Stones", "Château de Haut-Kœnigsbourg",
+    "Pont du Diable (Hérault)", "Gouffre de Padirac",
+  ],
+  DE: [
+    "Brandenburg Gate", "Neuschwanstein Castle", "Cologne Cathedral", "Berlin Wall",
+    "Reichstag Building", "Heidelberg Castle", "Dresden Frauenkirche",
+    "Hohenzollern Castle", "Sanssouci", "Munich Residenz", "Zugspitze",
+    "Hamburg Elbphilharmonie", "Aachen Cathedral",
+    "Berlin Cathedral", "Checkpoint Charlie", "Charlottenburg Palace",
+    "Holstentor", "Wartburg", "Würzburg Residence",
+    "Nymphenburg Palace", "Speyer Cathedral", "Zwinger",
+    "Semperoper", "Pergamon Museum", "Kaiser Wilhelm Memorial Church",
+    "Bamberg Cathedral", "Eltz Castle", "Rothenburg ob der Tauber",
+    "Lichtenstein Castle (Württemberg)", "Schwerin Palace", "Moritzburg Castle",
+    "Bastei Bridge", "Wieskirche", "Meissen Cathedral",
+    "Lorsch Abbey", "Maulbronn Monastery", "Trier Cathedral",
+    "Saxon Switzerland National Park", "Externsteine", "Rakotzbrücke",
+    "Königssee", "Black Forest", "Partnach Gorge",
+    "Berchtesgaden National Park",
+  ],
+  IT: [
+    "Colosseum", "Leaning Tower of Pisa", "Grand Canal (Venice)", "Trevi Fountain",
+    "Pantheon, Rome", "Florence Cathedral", "Pompeii", "Amalfi Coast",
+    "St. Peter's Basilica", "Roman Forum", "Sistine Chapel", "Rialto Bridge",
+    "Milan Cathedral", "Uffizi Gallery", "Castel Sant'Angelo",
+    "Piazza San Marco", "Ponte Vecchio", "Doge's Palace", "Spanish Steps",
+    "Basilica of San Vitale", "Castel del Monte", "Valley of the Temples",
+    "Palazzo Pitti", "Cinque Terre", "Piazza del Campo",
+    "Basilica of Saint Francis of Assisi", "Royal Palace of Caserta",
+    "Galleria Vittorio Emanuele II",
+    "Trulli of Alberobello", "Sassi di Matera", "Herculaneum",
+    "Orvieto Cathedral", "Palazzo Ducale, Mantua", "Certosa di Pavia",
+    "Basilica of San Clemente", "Ravello", "Palazzo dei Normanni",
+    "Teatro Massimo", "Castello Aragonese (Ischia)",
+    "Grotta Azzurra (Capri)", "Scala dei Turchi", "Civita di Bagnoregio",
+    "Sacra di San Michele", "Tonnara di Scopello", "Villa Adriana (Tivoli)",
+    "Cala Goloritzé",
+  ],
+  ES: [
+    "Sagrada Família", "Alhambra", "Park Güell", "Plaza de España, Seville",
+    "Royal Palace of Madrid", "Cathedral of Santiago de Compostela",
+    "Alcázar of Segovia", "Mosque–Cathedral of Córdoba", "La Rambla",
+    "Guggenheim Museum Bilbao", "Toledo", "Casa Batlló",
+    "Casa Milà", "Alcázar of Seville", "Seville Cathedral",
+    "Burgos Cathedral", "Montserrat (mountain)", "Plaza Mayor, Madrid",
+    "Aqueduct of Segovia", "Barcelona Cathedral", "Plaza de Cibeles",
+    "Museo del Prado", "Ciudad de las Artes y las Ciencias",
+    "Tower of Hercules", "El Escorial",
+    "Giralda", "Palau de la Música Catalana", "Cuenca Cathedral",
+    "Caminito del Rey", "Ronda Bridge", "Monastery of Poblet",
+    "Aljafería", "San Juan de Gaztelugatxe", "Mérida Roman Theatre",
+    "Cathedral of León", "Basilica of the Pillar",
+    "Windmills of Consuegra", "Alcazaba of Málaga",
+    "Drach Caves (Mallorca)", "Playa de las Catedrales", "Picos de Europa",
+    "Bardenas Reales", "Torcal de Antequera", "Roman Walls of Lugo",
+    "Cueva de Altamira",
+  ],
+  JP: [
+    "Mount Fuji", "Fushimi Inari-taisha", "Tokyo Tower", "Kinkaku-ji",
+    "Senso-ji", "Himeji Castle", "Hiroshima Peace Memorial", "Itsukushima Shrine",
+    "Tokyo Skytree", "Nara Park", "Arashiyama Bamboo Grove", "Osaka Castle",
+    "Shibuya Crossing", "Meiji Shrine",
+    "Tōdai-ji", "Byōdō-in", "Matsumoto Castle", "Nagoya Castle",
+    "Kenroku-en", "Kiyomizu-dera", "Nikkō Tōshō-gū",
+    "Kumamoto Castle", "Miyajima", "Shuri Castle",
+    "Imperial Palace, Tokyo", "Rainbow Bridge, Tokyo",
+    "Naoshima", "Tsūtenkaku",
+    "Ōura Church", "Yakushima", "Ritsurin Garden",
+    "Okayama Korakuen", "Takeda Castle ruins", "Tottori Sand Dunes",
+    "Shirakawa-gō", "Kanazawa Castle", "Sado Island",
+    "Ōkunoshima", "Kurashiki Bikan Historical Quarter",
+    "Jigokudani Monkey Park", "Aogashima", "Takachiho Gorge",
+    "Hashima Island (Gunkanjima)", "Oirase Gorge", "Cape Kamui",
+    "Iya Valley Vine Bridges",
+  ],
+  CN: [
+    "Great Wall of China", "Forbidden City", "Terracotta Army", "Tiananmen Square",
+    "Temple of Heaven", "The Bund", "Potala Palace", "Li River",
+    "Summer Palace", "Jiuzhaigou", "Giant Buddha of Leshan", "West Lake",
+    "Oriental Pearl Tower", "Shanghai Tower", "Chengdu Research Base of Giant Panda Breeding",
+    "Longmen Grottoes", "Mogao Caves", "Old Town of Lijiang",
+    "Temple of Confucius", "Zhangjiajie National Forest Park",
+    "Tianmen Mountain", "Yellow Crane Tower", "Guilin",
+    "Canton Tower", "Sun Yat-sen Mausoleum", "Hangzhou",
+    "Huangshan", "Fenghuang Ancient Town", "Pingyao Ancient City",
+    "Three Gorges Dam", "Yungang Grottoes", "Tulou (Fujian)",
+    "Harbin Ice and Snow World", "Jiayuguan Fort",
+    "Reed Flute Cave", "Dazu Rock Carvings",
+    "Tiger Leaping Gorge", "Mount Emei", "Crescent Moon Spring (Dunhuang)",
+    "Zhangye Danxia National Geological Park", "Wulingyuan",
+    "Honghe Hani Rice Terraces", "Kaili Miao Villages",
+  ],
+  IN: [
+    "Taj Mahal", "India Gate", "Hawa Mahal", "Qutub Minar",
+    "Gateway of India", "Red Fort", "Lotus Temple", "Amber Fort",
+    "Mysore Palace", "Humayun's Tomb", "Charminar", "Victoria Memorial",
+    "Meenakshi Amman Temple", "Konark Sun Temple", "Hampi", "Jantar Mantar, New Delhi",
+    "Ajanta Caves", "Ellora Caves", "Jama Masjid, Delhi",
+    "Sanchi", "Brihadisvara Temple", "Golden Temple",
+    "Fatehpur Sikri", "City Palace, Jaipur", "Agra Fort",
+    "Howrah Bridge",
+    "Khajuraho Group of Monuments", "Chand Baori", "Rani ki Vav",
+    "Gol Gumbaz", "Mahabodhi Temple", "Elephanta Caves",
+    "Nalanda University ruins", "Adalaj Stepwell",
+    "Virupaksha Temple", "Living Root Bridges, Meghalaya",
+    "Dudhsagar Falls", "Borra Caves", "Magnetic Hill, Ladakh",
+    "Pangong Lake", "Rann of Kutch", "Jog Falls",
+    "Loktak Lake",
+  ],
+  BR: [
+    "Christ the Redeemer", "Sugarloaf Mountain", "Iguazu Falls", "Copacabana Beach",
+    "Amazon Theatre", "Pelourinho", "Ipanema Beach", "Lençóis Maranhenses",
+    "Maracanã Stadium", "São Paulo Museum of Art", "Ouro Preto",
+    "Cathedral of Brasília", "Niterói Contemporary Art Museum",
+    "Itaipu Dam", "Pampulha Architectural Ensemble",
+    "Parque Ibirapuera", "Fernando de Noronha", "Chapada Diamantina",
+    "Theatro Municipal (Rio de Janeiro)", "Lacerda Elevator",
+    "São Francisco Church and Convent, Salvador", "Metropolitan Cathedral of São Sebastião",
+    "Canoa Quebrada", "Pedra da Gávea", "Museu do Amanhã",
+    "Botanical Garden of Rio de Janeiro",
+    "Inhotim", "Chapada dos Veadeiros", "Pão de Açúcar Cable Car Station",
+    "Mercado Ver-o-Peso", "Forte de São Marcelo", "Teatro Amazonas",
+    "Monte Pascoal", "Santuário do Bom Jesus de Matosinhos",
+    "Praia do Forte", "Pantanal Wetlands",
+    "Gruta do Lago Azul", "Aparados da Serra National Park",
+    "Cachoeira da Fumaça", "Jalapão State Park", "Anavilhanas Archipelago",
+    "Serra da Canastra National Park", "Abismo Anhumas",
+  ],
+  AU: [
+    "Sydney Opera House", "Great Barrier Reef", "Uluru", "Sydney Harbour Bridge",
+    "Twelve Apostles", "Bondi Beach", "Blue Mountains", "Kangaroo Island",
+    "Daintree Rainforest", "Royal Botanic Gardens, Melbourne",
+    "Melbourne Cricket Ground", "Queen Victoria Market",
+    "Kakadu National Park", "Cradle Mountain", "Pinnacles Desert",
+    "Kata Tjuta", "Wave Rock", "Shrine of Remembrance",
+    "Parliament House, Canberra", "Australian War Memorial",
+    "Fremantle Prison", "Port Arthur, Tasmania",
+    "Flinders Street station", "Federation Square",
+    "Fraser Island", "Whitehaven Beach", "Luna Park Sydney",
+    "Coober Pedy", "Horizontal Falls", "Ningaloo Reef",
+    "Devils Marbles", "Three Sisters (Blue Mountains)", "Wineglass Bay",
+    "Kings Canyon (Northern Territory)", "Bungle Bungles",
+    "Lake Hillier", "Lord Howe Island",
+    "Remarkable Rocks (Kangaroo Island)", "The Pinnacles (Nambung)",
+    "Jenolan Caves", "Purnululu National Park", "Katherine Gorge",
+    "Wilpena Pound", "Organ Pipes National Park",
+  ],
+  EG: [
+    "Great Pyramid of Giza", "Great Sphinx of Giza", "Luxor Temple", "Valley of the Kings",
+    "Karnak", "Abu Simbel temples", "Egyptian Museum", "Citadel of Cairo",
+    "Temple of Hatshepsut", "Philae Temple",
+    "Colossi of Memnon", "Temple of Edfu", "Temple of Kom Ombo",
+    "Bibliotheca Alexandrina", "Muhammad Ali Mosque", "Al-Azhar Mosque",
+    "Siwa Oasis", "White Desert", "Monastery of Saint Catherine",
+    "Bent Pyramid", "Step Pyramid of Djoser", "Montaza Palace",
+    "Baron Empain Palace", "Cairo Tower", "Mosque of Ibn Tulun",
+    "Temple of Isis", "Unfinished obelisk",
+    "Dahshur", "Wadi El Rayan", "Coloured Canyon",
+    "Dendera Temple", "Medinet Habu", "Qaitbay Citadel",
+    "Hanging Church, Cairo", "Temple of Kalabsha",
+    "Red Monastery", "Abydos Temple",
+    "Blue Hole (Dahab)", "Wadi El Hitan (Valley of the Whales)",
+    "Ras Muhammad National Park", "Temple of Khnum (Esna)",
+    "Saladin Citadel of Cairo", "Nubian Village, Aswan",
+    "Fayoum Oasis",
+  ],
+  MX: [
+    "Chichen Itza", "Teotihuacan", "Palacio de Bellas Artes", "Angel of Independence",
+    "Tulum", "Palenque", "Monte Albán", "Chapultepec Castle",
+    "Cancún", "Cenote Ik Kil", "Frida Kahlo Museum",
+    "Metropolitan Cathedral, Mexico City", "Pyramid of the Sun",
+    "Hierve el Agua", "Basilica of Our Lady of Guadalupe",
+    "Museo Nacional de Antropología", "Xochimilco",
+    "Templo Mayor", "Uxmal", "Coba",
+    "Castillo de San Juan de Ulúa", "Isla Mujeres",
+    "El Tajín", "National Palace (Mexico)", "Guadalajara Cathedral",
+    "Copper Canyon", "Sumidero Canyon",
+    "Cenote Suytun", "Las Coloradas (pink lakes)", "Isla Holbox",
+    "Guanajuato Underground Streets", "Hospicio Cabañas",
+    "Bonampak", "Mitla", "Bacalar Lagoon",
+    "Peña de Bernal", "Huasteca Potosina",
+    "Sótano de las Golondrinas", "Cascada de Tamul", "Grutas de Cacahuamilpa",
+    "Prismas Basálticos (Huasca)", "Isla Espíritu Santo",
+    "Cascadas de Agua Azul", "Cenote Dos Ojos",
+  ],
+  GR: [
+    "Parthenon", "Acropolis of Athens", "Santorini", "Temple of Poseidon, Sounion",
+    "Meteora", "Palace of Knossos", "Delphi", "Temple of Olympian Zeus",
+    "Mykonos", "Ancient Olympia", "Corinth Canal",
+    "Erechtheion", "Theatre of Epidaurus", "Rhodes (city)",
+    "Odeon of Herodes Atticus", "Temple of Apollo (Delphi)",
+    "Panathenaic Stadium", "Monastiraki", "Lindos",
+    "Palace of the Grand Master of the Knights of Rhodes",
+    "Mount Olympus", "Samaria Gorge", "Navagio",
+    "Arch of Hadrian (Athens)", "White Tower of Thessaloniki", "Temple of Hephaestus",
+    "Monemvasia", "Mystras", "Ancient Messene",
+    "Spinalonga", "Vikos Gorge", "Monastery of Hosios Loukas",
+    "Ancient Akrotiri", "Temple of Aphaia",
+    "Delos", "Preveli Beach",
+    "Melissani Cave", "Balos Lagoon", "Shipwreck Beach (Zakynthos)",
+    "Acheron Springs", "Old Fortress of Corfu", "Petrified Forest of Lesbos",
+    "Myrtos Beach",
+  ],
+  TR: [
+    "Hagia Sophia", "Blue Mosque", "Cappadocia", "Topkapi Palace",
+    "Pamukkale", "Ephesus", "Grand Bazaar", "Galata Tower",
+    "Library of Celsus", "Anıtkabir", "Bosphorus Bridge",
+    "Dolmabahçe Palace", "Basilica Cistern", "Maiden's Tower",
+    "Süleymaniye Mosque", "Aspendos", "Pergamon",
+    "Sumela Monastery", "Nemrut (mountain)", "Göbekli Tepe",
+    "Hierapolis", "Bodrum Castle", "Selimiye Mosque",
+    "Ishak Pasha Palace", "Rumeli Fortress", "Spice Bazaar",
+    "Ani (ancient city)", "Hattusha", "Patara Beach",
+    "Olympos (Lycia)", "Safranbolu", "Didyma",
+    "Kayaköy Ghost Town", "Çatalhöyük",
+    "Uzungöl", "Divriği Great Mosque",
+    "Butterfly Valley (Fethiye)", "Mount Ararat", "Ihlara Valley",
+    "Salda Lake", "Aizanoi (Temple of Zeus)", "Kaputaş Beach",
+    "Fairy Chimneys of Cappadocia",
+  ],
+  RU: [
+    "Saint Basil's Cathedral", "Kremlin", "Hermitage Museum", "Red Square",
+    "Peterhof Palace", "Winter Palace", "Catherine Palace",
+    "Bolshoi Theatre", "Church of the Savior on Blood", "Lake Baikal",
+    "Moscow State University", "Cathedral of Christ the Saviour",
+    "Kazan Kremlin", "Peter and Paul Fortress", "Kizhi",
+    "Trinity Lavra of St. Sergius", "Smolny Cathedral",
+    "State Historical Museum", "GUM (department store)",
+    "Tsaritsyno Palace", "Novodevichy Convent",
+    "Saint Isaac's Cathedral", "Mamayev Kurgan",
+    "Mariinsky Theatre", "Spasskaya Tower",
+    "Kolomenskoye", "Derbent Citadel", "Valley of Geysers",
+    "Solovetsky Monastery", "Pskov Kremlin", "Nizhny Novgorod Kremlin",
+    "Assumption Cathedral, Vladimir", "Naryn-Kala Fortress",
+    "Golden Ring of Russia", "Church of the Intercession on the Nerl",
+    "Stolby Nature Reserve", "Lena Pillars", "Kamchatka Volcanoes",
+    "Curonian Spit (Kaliningrad)", "Olkhon Island (Baikal)",
+    "Ruskeala Mountain Park", "Manpupuner Rock Formations",
+  ],
+  TH: [
+    "Wat Arun", "Grand Palace, Bangkok", "Wat Pho", "Ayutthaya",
+    "Doi Suthep", "Phi Phi Islands", "White Temple, Chiang Rai",
+    "Damnoen Saduak floating market", "Erawan Shrine", "Sukhothai Historical Park",
+    "Wat Rong Suea Ten", "Jim Thompson House", "Prasat Hin Phimai",
+    "Khao Sok National Park", "Wat Phra Kaew", "Wat Benchamabophit",
+    "Railay Beach", "Erawan Falls", "Sanctuary of Truth",
+    "Phanom Rung", "Wat Chaiwatthanaram", "Democracy Monument",
+    "Wat Mahathat", "Tiger Cave Temple", "Maya Bay",
+    "Chatuchak Weekend Market",
+    "Doi Inthanon", "Pai Canyon", "Muang Boran (Ancient City)",
+    "Prasat Muang Tam", "Wat Phra That Lampang Luang",
+    "Tham Lod Cave", "Khao Phing Kan (James Bond Island)",
+    "Wat Rong Khun", "Ang Thong National Marine Park",
+    "Si Satchanalai Historical Park",
+    "Huai Mae Khamin Waterfall", "Tham Khao Luang Cave",
+    "Pha Taem National Park", "Sam Phan Bok (Grand Canyon of Thailand)",
+    "Wat Phu Tok", "Tham Phra Nang Beach", "Ko Lipe",
+  ],
+  ZA: [
+    "Table Mountain", "Robben Island", "Kruger National Park", "Cape of Good Hope",
+    "Apartheid Museum", "Blyde River Canyon", "V&A Waterfront",
+    "Union Buildings", "Drakensberg", "Chapman's Peak Drive",
+    "Voortrekker Monument", "Castle of Good Hope", "Hector Pieterson Memorial",
+    "Sun City, South Africa", "Cradle of Humankind",
+    "Kirstenbosch National Botanical Garden", "God's Window",
+    "Bourke's Luck Potholes", "Cango Caves", "Nelson Mandela capture site",
+    "Constitutional Hill, Johannesburg", "Durban City Hall",
+    "Mapungubwe National Park", "Cape Point", "Muizenberg",
+    "Tsitsikamma National Park",
+    "Augrabies Falls", "Hluhluwe-iMfolozi Park", "Hole in the Wall (Eastern Cape)",
+    "Valley of Desolation", "Oribi Gorge", "Sudwala Caves",
+    "Sterkfontein Caves", "Golden Gate Highlands National Park",
+    "De Hoop Nature Reserve", "Addo Elephant National Park",
+    "Howick Falls", "Tugela Falls", "Pilanesberg National Park",
+    "Sterkfontein Dam", "Mac-Mac Falls", "Timbavati Private Nature Reserve",
+    "Canopy Tour (Tsitsikamma)",
+  ],
+  PE: [
+    "Machu Picchu", "Cusco", "Nazca Lines", "Lake Titicaca",
+    "Sacred Valley", "Rainbow Mountain", "Sacsayhuamán", "Colca Canyon",
+    "Huacachina", "Plaza de Armas, Lima",
+    "Ollantaytambo", "Moray (Inca ruin)", "Huayna Picchu",
+    "Chan Chan", "Basilica Cathedral of Arequipa", "Uros Islands",
+    "Monastery of Santa Catalina", "Tambomachay",
+    "Plaza de Armas, Cusco", "Qorikancha", "Ballestas Islands",
+    "Pikillaqta", "Huaca Pucllana",
+    "Salinas de Maras", "Miraflores, Lima", "Pisac",
+    "Cathedral of Lima", "Choquequirao",
+    "Kuélap", "Gocta Falls", "Huascarán National Park",
+    "Chavín de Huántar", "Manu National Park", "Líneas de Palpa",
+    "Waqrapukara", "Laguna 69",
+    "Sillustani", "Túcume Pyramids",
+    "Pastoruri Glacier", "Cataratas de Ahuashiyacu",
+    "Marcahuasi Stone Forest", "Palcoyo Rainbow Mountain",
+    "Lago Sandoval", "Winikunka (Montaña de Siete Colores)",
+    "Revash Mausoleums",
+  ],
+  NG: [
+    // Lagos
+    "Third Mainland Bridge", "National Theatre, Lagos", "Lekki Conservation Centre",
+    "Nike Art Gallery", "Tinubu Square", "Lekki-Ikoyi Link Bridge",
+    "Cathedral Church of Christ, Lagos", "Lagos Central Mosque",
+    "Tafawa Balewa Square", "National Museum Lagos", "Freedom Park, Lagos",
+    "Civic Centre, Lagos", "Lekki Free Trade Zone", "Badagry Heritage Museum",
+    "Brazilian Quarter, Lagos", "Kalakuta Museum", "Landmark Beach, Lagos",
+    "The Palms Shopping Mall", "Glover Memorial Hall", "Ikoyi Club",
+    // Abuja
+    "National Mosque Abuja", "Aso Rock", "National Ecumenical Centre",
+    "Millennium Park, Abuja", "Jabi Lake", "Nigerian National Assembly",
+    "Thought Pyramid Art Centre", "Arts and Crafts Village, Abuja",
+    "IBB Golf Club", "Abuja National Stadium", "Abuja Gate",
+    // Oyo / Ibadan
+    "University of Ibadan", "Cocoa House, Ibadan", "Agodi Gardens",
+    "Bower's Tower", "Mapo Hall", "Trans Amusement Park, Ibadan",
+    // Ogun
+    "Olumo Rock", "Adire Market Abeokuta", "Olusegun Obasanjo Presidential Library",
+    // Enugu
+    "Awhum Waterfall", "Ngwo Pine Forest", "Milken Hills, Enugu",
+    // Rivers
+    "Port Harcourt Pleasure Park", "Isaac Boro Park",
+    // Cross River
+    "Obudu Mountain Resort", "Cross River National Park", "Tinapa Resort",
+    "Kwa Falls", "Agbokim Waterfalls",
+    // Plateau
+    "Shere Hills", "Jos Wildlife Park", "Assop Falls",
+    // Osun
+    "Osun-Osogbo Sacred Grove", "Nike Art Centre Osogbo",
+    // Kano
+    "Gidan Makama Museum", "Kano City Walls", "Emir's Palace Kano",
+    // Edo
+    "Benin City Walls", "Emotan Statue", "Royal Palace of the Oba of Benin",
+    // Other states
+    "Zuma Rock", "Yankari National Park", "Idanre Hills",
+    "Gashaka-Gumti National Park", "Kainji Dam", "Ogbunike Caves",
+    "Olumirin Waterfalls", "Gurara Falls", "Kajuru Castle",
+    "Ikogosi Warm Springs", "National War Museum, Umuahia",
+    "Sukur Cultural Landscape", "Wikki Warm Springs",
+    "Farin Ruwa Falls", "Oguta Lake", "Argungu Fishing Festival grounds",
+    // Rivers and waterfalls
+    "River Ethiope (Delta)", "Erin Ijesha Waterfalls", "Owu Falls (Kwara)",
+    "Omi Ala Waterfall", "Kainji Lake",
+    // Beaches
+    "Elegushi Beach", "Tarkwa Bay", "Atican Beach",
+    "La Campagne Tropicana", "Whispering Palms",
+    // Mountains and hills
+    "Chappal Waddi", "Olosunta and Orole Hills", "Oke Idanre",
+    "Mambilla Plateau",
+    // Historical and cultural
+    "Ancient Nok Village", "Arochukwu Long Juju", "Ife Bronze Head",
+    "Ooni's Palace Ile-Ife", "Old Oyo National Park",
+    "Emir's Palace Zaria", "Nnamdi Azikiwe's Mausoleum",
+    "First Storey Building in Nigeria (Badagry)", "Slave Trade Relics Badagry",
+    // Parks and nature reserves
+    "Yankari Game Reserve", "Okomu National Park",
+    "Chad Basin National Park", "Kamuku National Park",
+    // Modern and urban
+    "Eko Atlantic", "Oriental Hotel Lagos",
+    "Federal Palace Hotel", "Transcorp Hilton Abuja",
+    // Religious sites
+    "CMS Cathedral Lagos", "Central Mosque Ilorin",
+    "Ahmadu Bello Mosque Kaduna",
+    // Monuments
+    "Cenotaph Kakadu", "Queen Amina Statue", "Efon Alaaye",
+    "KAP Village", "Lakowe Lakes", "Omu Resort",
+  ],
+};
+
+async function fetchLandmarkImage(placeName: string): Promise<string | null> {
+  const params = new URLSearchParams({
+    q: placeName,
+    license_type: "all",
+    page_size: "1",
+  });
+
+  try {
+    const res = await fetch(
+      `https://api.openverse.org/v1/images/?${params.toString()}`,
+    );
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return data.results?.[0]?.url ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function preparePlaceContent(
+  country: string,
+  totalRounds: number,
+): Promise<RoundContent[]> {
+  const landmarks = LANDMARKS[country] ?? LANDMARKS["US"];
+  const shuffled = shuffle(landmarks);
+
+  const rounds: RoundContent[] = [];
+  const usedNames = new Set<string>();
+
+  for (const place of shuffled) {
+    if (rounds.length >= totalRounds) break;
+
+    const imageUrl = await fetchLandmarkImage(place);
+    if (!imageUrl) continue;
+
+    usedNames.add(place);
+
+    const distractors = shuffle(
+      landmarks.filter((l) => l !== place && !usedNames.has(l)),
+    ).slice(0, 3);
+
+    while (distractors.length < 3) {
+      distractors.push(`landmark ${distractors.length + 1}`);
+    }
+
+    const options = shuffle([place, ...distractors]);
+
+    rounds.push({
+      roundNumber: rounds.length + 1,
+      correctAnswer: place,
+      options,
+      mediaUrl: imageUrl,
+      mediaTitle: place,
+      isFinal: rounds.length === totalRounds - 1,
+    });
+  }
+
+  if (rounds.length === 0) {
+    throw new Error("could not fetch enough landmarks for this country");
+  }
+
+  return rounds;
+}

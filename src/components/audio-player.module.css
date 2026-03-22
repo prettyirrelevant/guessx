@@ -1,0 +1,135 @@
+.player {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.playBtn {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+  box-shadow: var(--glow-accent);
+}
+
+.playBtn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 24px rgba(200, 241, 53, 0.5);
+}
+
+.playBtn.playing {
+  background: var(--accent2);
+  box-shadow: var(--glow-accent2);
+}
+
+.playBtn.playing:hover {
+  box-shadow: 0 0 24px rgba(91, 140, 255, 0.5);
+}
+
+.controls {
+  flex: 1;
+  min-width: 0;
+}
+
+.waveform {
+  position: relative;
+  height: 40px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.waveTrack {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.waveFill {
+  height: 100%;
+  background: transparent;
+  transition: width 0.1s linear;
+}
+
+.waveBars {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 100%;
+  z-index: 1;
+}
+
+.waveBar {
+  flex: 1;
+  background: var(--muted2);
+  border-radius: 1px;
+  min-height: 4px;
+  transition: background var(--transition-fast);
+}
+
+.waveBarFilled {
+  background: var(--accent);
+}
+
+.waveBarAnimated {
+  animation: waveMove 0.6s ease infinite alternate;
+}
+
+@keyframes waveMove {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.6); }
+}
+
+.timeRow {
+  display: flex;
+  justify-content: space-between;
+}
+
+.time {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.muteBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.muteBtn:hover {
+  color: var(--text);
+}
+
+@media (max-width: 480px) {
+  .player {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .playBtn {
+    width: 42px;
+    height: 42px;
+  }
+
+  .waveform {
+    height: 32px;
+  }
+}

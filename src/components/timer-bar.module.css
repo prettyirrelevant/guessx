@@ -1,0 +1,46 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px;
+  margin-bottom: 20px;
+}
+
+.track {
+  flex: 1;
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+.fill.urgent {
+  background: linear-gradient(90deg, var(--accent3), #ff9f5c);
+  animation: glowPulse 0.8s ease infinite;
+}
+
+.time {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  min-width: 36px;
+  text-align: right;
+}
+
+.timeUrgent {
+  color: var(--accent3);
+  animation: pulse 0.5s ease infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 92, 92, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(255, 92, 92, 0.6); }
+}
