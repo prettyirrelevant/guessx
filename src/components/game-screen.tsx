@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Doc, Id } from "../../convex/_generated/dataModel";
+import Image from "next/image";
 import { getAvatarUrl } from "@/lib/session";
 import { TimerBar } from "./timer-bar";
 import { AudioPlayer } from "./audio-player";
@@ -159,11 +160,12 @@ function ActiveRound({
           <div className={styles.placeSection}>
             <p className={styles.placeHint}>where is this?</p>
             <div className={styles.imageWrapper}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={round.mediaUrl}
                 alt="guess this place"
                 className={styles.placeImage}
+                fill
+                unoptimized
               />
             </div>
           </div>
@@ -192,8 +194,8 @@ function ActiveRound({
         <div className={styles.answeredInfo}>
           <div className={styles.answeredAvatars}>
             {connectedPlayers.map((player) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
+                unoptimized
                 key={player._id}
                 src={getAvatarUrl(player.avatar)}
                 alt={player.displayName}

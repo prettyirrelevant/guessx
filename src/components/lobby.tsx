@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Copy, Check, Shield } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import { Doc } from "../../convex/_generated/dataModel";
+import Image from "next/image";
 import { getAvatarUrl } from "@/lib/session";
 import styles from "./lobby.module.css";
 
@@ -78,8 +79,8 @@ export function Lobby({
           <div className={styles.playerList}>
             {players?.map((player) => (
               <div key={player._id} className={styles.playerRow}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
+                  unoptimized
                   src={getAvatarUrl(player.avatar)}
                   alt={player.displayName}
                   className={styles.playerAvatar}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Doc } from "../../convex/_generated/dataModel";
+import Image from "next/image";
 import { getAvatarUrl } from "@/lib/session";
 import styles from "./results-screen.module.css";
 
@@ -58,8 +59,8 @@ export function ResultsScreen({
               <div className={styles.podiumRank}>
                 {i === 0 ? "👑" : `#${i + 1}`}
               </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
+                unoptimized
                 src={getAvatarUrl(player.avatar)}
                 alt={player.displayName}
                 className={styles.podiumAvatar}
@@ -81,8 +82,8 @@ export function ResultsScreen({
               }`}
             >
               <span className={styles.listRank}>#{i + 1}</span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
+                unoptimized
                 src={getAvatarUrl(player.avatar)}
                 alt={player.displayName}
                 className={styles.listAvatar}

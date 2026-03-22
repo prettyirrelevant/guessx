@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Search, X } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import { useSession } from "@/lib/session";
@@ -208,11 +209,13 @@ function CreateRoomModal({
 
             {selectedArtist ? (
               <div className={styles.artistChip}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={`https://api.deezer.com/artist/${selectedArtist.id}/image?size=small`}
                   alt={selectedArtist.name}
                   className={styles.artistChipImg}
+                  width={28}
+                  height={28}
+                  unoptimized
                 />
                 <span>{selectedArtist.name}</span>
                 <button
@@ -268,11 +271,13 @@ function CreateRoomModal({
                         }}
                         type="button"
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Image
                           src={a.picture_small}
                           alt={a.name}
                           className={styles.artistImg}
+                          width={32}
+                          height={32}
+                          unoptimized
                         />
                         <span>{a.name}</span>
                       </button>
@@ -290,11 +295,13 @@ function CreateRoomModal({
                       onClick={() => setSelectedArtist(a)}
                       type="button"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <Image
                         src={`https://api.deezer.com/artist/${a.id}/image?size=small`}
                         alt={a.name}
                         className={styles.artistImg}
+                        width={44}
+                        height={44}
+                        unoptimized
                       />
                       <span className={styles.artistName}>{a.name}</span>
                     </button>

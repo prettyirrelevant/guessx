@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { Check, X } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import { Doc } from "../../convex/_generated/dataModel";
+import Image from "next/image";
 import { getAvatarUrl } from "@/lib/session";
 import styles from "./reveal-screen.module.css";
 
@@ -80,8 +81,8 @@ export function RevealScreen({
               style={{ animationDelay: `${i * 0.08}s` }}
             >
               <div className={styles.resultLeft}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
+                  unoptimized
                   src={getAvatarUrl(player.avatar)}
                   alt={player.displayName}
                   className={styles.resultAvatar}
@@ -141,8 +142,8 @@ export function RevealScreen({
               }`}
             >
               <span className={styles.standingRank}>#{i + 1}</span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
+                unoptimized
                 src={getAvatarUrl(player.avatar)}
                 alt={player.displayName}
                 className={styles.standingAvatar}
