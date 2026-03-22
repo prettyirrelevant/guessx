@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useCallback } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import Link from "next/link";
 import { api } from "../../../../convex/_generated/api";
@@ -54,9 +54,17 @@ export default function RoomPage({
 
   useHeartbeat({ roomId: room?._id, userId: sessionId });
 
+  // auto-join if the user has a profile but isn't a player yet
+  const shouldAutoJoin = ready && hasProfile && !isPlayer && !joining && !joinError && room?.state === "waiting";
+  useEffect(() => {
+    if (shouldAutoJoin) {
+      doJoin();
+    }
+  }, [shouldAutoJoin, doJoin]);
+
   if (!ready) return null;
 
-  if (room === undefined) {
+  if (room === undefined || (room !== null && players === undefined)) {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner} />
@@ -121,7 +129,7 @@ export default function RoomPage({
       );
     }
 
-    if (joining) {
+    if (joining || hasProfile) {
       return (
         <div className={styles.loading}>
           <div className={styles.spinner} />
@@ -130,7 +138,7 @@ export default function RoomPage({
       );
     }
 
-    // show profile setup, onSave saves profile then joins
+    // no profile yet, show setup
     return (
       <div className={styles.loading}>
         <h2 className={styles.joinTitle}>join {code}</h2>
@@ -140,7 +148,6 @@ export default function RoomPage({
           onSave={(name, av) => {
             setDisplayName(name);
             setAvatar(av);
-            // doJoin uses the latest values via the callback ref
             joinRoom({
               roomCode: code,
               userId: sessionId,

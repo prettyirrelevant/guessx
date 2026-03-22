@@ -45,6 +45,12 @@ export function AudioPlayer({ src }: { src: string }) {
       setCurrentTime(0);
     });
 
+    audio.play().then(() => {
+      setPlaying(true);
+    }).catch(() => {
+      // browser blocked autoplay, user needs to click
+    });
+
     return () => {
       audio.pause();
       audio.src = "";

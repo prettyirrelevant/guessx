@@ -65,27 +65,29 @@ export async function prepareMusicContent(
     ),
   ]);
 
-  const allTracks: Track[] = [...topData.data];
+  // selected artist's tracks are the only correct answers
+  const artistTracks = shuffle(topData.data.filter((t) => t.preview));
 
-  const target = totalRounds + 1;
+  // related artists' tracks are only used as distractors
+  const distractorTracks: Track[] = [];
   for (const related of shuffle(relatedData.data)) {
-    if (allTracks.length >= target) break;
+    if (distractorTracks.length >= 30) break;
 
     try {
       const data = await fetchJson<{ data: Track[] }>(
         `https://api.deezer.com/artist/${related.id}/top?limit=5`,
       );
-      allTracks.push(...data.data);
+      distractorTracks.push(...data.data.filter((t) => t.preview));
     } catch {
       // skip failed fetches
     }
   }
 
-  const validTracks = shuffle(allTracks.filter((t) => t.preview));
+  const distractorLabels = [...new Set(distractorTracks.map((t) => trackLabel(t)))];
   const usedLabels = new Set<string>();
   const rounds: RoundContent[] = [];
 
-  for (const track of validTracks) {
+  for (const track of artistTracks) {
     if (rounds.length >= totalRounds) break;
 
     const label = trackLabel(track);
@@ -93,9 +95,7 @@ export async function prepareMusicContent(
     usedLabels.add(label);
 
     const distractors = shuffle(
-      validTracks
-        .filter((t) => trackLabel(t) !== label && !usedLabels.has(trackLabel(t)))
-        .map((t) => trackLabel(t)),
+      distractorLabels.filter((l) => l !== label && !usedLabels.has(l)),
     ).slice(0, 3);
 
     if (distractors.length < 3) continue;

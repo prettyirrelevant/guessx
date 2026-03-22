@@ -4,7 +4,7 @@ export const POPULAR_ARTISTS: { id: number; name: string }[] = [
   { id: 4338602, name: "Burna Boy" },
   { id: 125372, name: "Davido" },
   { id: 51305922, name: "Asake" },
-  { id: 83764912, name: "Rema" },
+  { id: 5259966, name: "Rema" },
   { id: 2281211, name: "Tiwa Savage" },
   { id: 3744641, name: "Olamide" },
   { id: 903536, name: "CKay" },
