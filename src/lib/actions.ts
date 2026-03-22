@@ -33,7 +33,7 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 function trackLabel(t: Track): string {
-  return `${t.title} — ${t.artist.name}`;
+  return t.title;
 }
 
 export async function searchArtists(
