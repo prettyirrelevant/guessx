@@ -33,14 +33,16 @@ export default function Home() {
           guess the song or spot the landmark. fastest finger wins.
         </p>
 
-        <div className={styles.actions}>
-          <button className={styles.btnPrimary} onClick={() => setModal("create")}>
-            create room
-          </button>
-          <button className={styles.btnSecondary} onClick={() => setModal("join")}>
-            join room
-          </button>
-        </div>
+        {hasProfile && (
+          <div className={styles.actions}>
+            <button className={styles.btnPrimary} onClick={() => setModal("create")}>
+              create room
+            </button>
+            <button className={styles.btnSecondary} onClick={() => setModal("join")}>
+              join room
+            </button>
+          </div>
+        )}
       </div>
 
 
@@ -332,17 +334,17 @@ function CreateRoomModal({
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>players</label>
-            <select
-              className={styles.formSelect}
+            <input
+              className={styles.formInput}
+              type="number"
+              min={2}
+              max={20}
               value={maxPlayers}
-              onChange={(e) => setMaxPlayers(Number(e.target.value))}
-            >
-              {[2, 3, 4, 5, 6, 7, 8].map((n) => (
-                <option key={n} value={n}>
-                  {n} players
-                </option>
-              ))}
-            </select>
+              onChange={(e) => {
+                const v = Math.min(20, Math.max(2, Number(e.target.value) || 2));
+                setMaxPlayers(v);
+              }}
+            />
           </div>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>rounds</label>
