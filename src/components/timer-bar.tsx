@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useInterval } from "@mantine/hooks";
 import styles from "./timer-bar.module.css";
 
 export function TimerBar({
@@ -13,20 +14,23 @@ export function TimerBar({
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(0);
 
+  const timer = useInterval(() => {
+    if (endsAt) {
+      setSecondsLeft(Math.ceil(Math.max(0, (endsAt - Date.now()) / 1000)));
+    }
+  }, 200);
+
   useEffect(() => {
-    if (!startedAt || !endsAt) return;
+    if (!startedAt || !endsAt) {
+      timer.stop();
+      return;
+    }
 
-    const total = Math.ceil((endsAt - startedAt) / 1000);
-    setTotalSeconds(total);
+    setTotalSeconds(Math.ceil((endsAt - startedAt) / 1000));
+    setSecondsLeft(Math.ceil(Math.max(0, (endsAt - Date.now()) / 1000)));
+    timer.start();
 
-    const update = () => {
-      const remaining = Math.ceil(Math.max(0, (endsAt - Date.now()) / 1000));
-      setSecondsLeft(remaining);
-    };
-
-    update();
-    const interval = setInterval(update, 200);
-    return () => clearInterval(interval);
+    return timer.stop;
   }, [startedAt, endsAt]);
 
   const isUrgent = secondsLeft <= 5;

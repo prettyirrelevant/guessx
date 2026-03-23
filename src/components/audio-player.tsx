@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { useToggle } from "@mantine/hooks";
 import styles from "./audio-player.module.css";
+
+function formatTime(s: number) {
+  const mins = Math.floor(s / 60);
+  const secs = Math.floor(s % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
 
 // stable wave bar heights computed once per mount
 const WAVE_BAR_HEIGHTS = Array.from({ length: 32 }, (_, i) => {
@@ -13,7 +20,7 @@ const WAVE_BAR_HEIGHTS = Array.from({ length: 32 }, (_, i) => {
 export function AudioPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, toggleMuted] = useToggle([false, true]);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -74,12 +81,6 @@ export function AudioPlayer({ src }: { src: string }) {
     }
   }, [muted]);
 
-  const formatTime = (s: number) => {
-    const mins = Math.floor(s / 60);
-    const secs = Math.floor(s % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const audio = audioRef.current;
     if (!audio || !duration) return;
@@ -133,7 +134,7 @@ export function AudioPlayer({ src }: { src: string }) {
 
       <button
         className={styles.muteBtn}
-        onClick={() => setMuted((prev) => !prev)}
+        onClick={() => toggleMuted()}
         aria-label={muted ? "unmute" : "mute"}
       >
         {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}

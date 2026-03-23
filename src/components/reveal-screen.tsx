@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Check, X } from "lucide-react";
+import { useInterval } from "@mantine/hooks";
 import { api } from "../../convex/_generated/api";
 import { Doc } from "../../convex/_generated/dataModel";
 import Image from "next/image";
@@ -24,13 +25,19 @@ export function RevealScreen({
   const answers = useQuery(api.rounds.answers, { roundId: round._id });
   const [countdown, setCountdown] = useState(10);
 
+  const countdownTimer = useInterval(
+    () => setCountdown((prev) => (prev > 0 ? prev - 1 : 0)),
+    1000,
+  );
+
   useEffect(() => {
-    if (round.state !== "revealing") return;
+    if (round.state !== "revealing") {
+      countdownTimer.stop();
+      return;
+    }
     setCountdown(10);
-    const interval = setInterval(() => {
-      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(interval);
+    countdownTimer.start();
+    return countdownTimer.stop;
   }, [round._id, round.state]);
 
   if (!answers || !("selectedOption" in (answers[0] ?? {}))) {
@@ -127,7 +134,7 @@ export function RevealScreen({
               </div>
 
               <div className={styles.resultRight}>
-                {answer?.position && (
+                {answer?.position != null && (
                   <span className={styles.resultPosition}>
                     #{answer.position}
                   </span>

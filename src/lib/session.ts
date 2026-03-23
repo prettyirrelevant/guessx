@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useLocalStorage, useMounted } from "@mantine/hooks";
 
 const SESSION_KEY = "guessx-session";
 const NAME_KEY = "guessx-name";
@@ -28,47 +28,15 @@ export function getAvatarUrl(seed: string): string {
   return `https://api.dicebear.com/9.x/${DICEBEAR_STYLE}/svg?seed=${encodeURIComponent(seed)}`;
 }
 
-function getOrCreateSessionId(): string {
-  if (typeof window === "undefined") return "";
-
-  const existing = localStorage.getItem(SESSION_KEY);
-  if (existing) return existing;
-
-  const id = typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : Array.from(crypto.getRandomValues(new Uint8Array(16)))
-        .map((b, i) => ([4, 6, 8, 10].includes(i) ? "-" : "") + b.toString(16).padStart(2, "0"))
-        .join("");
-  localStorage.setItem(SESSION_KEY, id);
-  return id;
-}
-
 export function useSession() {
-  const [sessionId, setSessionId] = useState("");
-  const [displayName, setDisplayNameState] = useState("");
-  const [avatar, setAvatarState] = useState("");
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setSessionId(getOrCreateSessionId());
-    setDisplayNameState(localStorage.getItem(NAME_KEY) ?? "");
-    setAvatarState(localStorage.getItem(AVATAR_KEY) ?? "");
-    setReady(true);
-  }, []);
-
-  const setDisplayName = useCallback((name: string) => {
-    setDisplayNameState(name);
-    localStorage.setItem(NAME_KEY, name);
-  }, []);
-
-  const setAvatar = useCallback((seed: string) => {
-    setAvatarState(seed);
-    localStorage.setItem(AVATAR_KEY, seed);
-  }, []);
+  const [sessionId] = useLocalStorage({ key: SESSION_KEY, defaultValue: crypto.randomUUID() });
+  const [displayName, setDisplayName] = useLocalStorage({ key: NAME_KEY, defaultValue: "" });
+  const [avatar, setAvatar] = useLocalStorage({ key: AVATAR_KEY, defaultValue: "" });
+  const mounted = useMounted();
 
   const hasProfile = displayName.trim().length > 0 && avatar.length > 0;
 
-  return { sessionId, displayName, avatar, setDisplayName, setAvatar, hasProfile, ready };
+  return { sessionId, displayName, avatar, setDisplayName, setAvatar, hasProfile, ready: mounted };
 }
 
 export { AVATAR_SEEDS };

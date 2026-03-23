@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mantine/hooks": "^8.3.18",
     "convex": "^1.34.0",
     "lucide-react": "^0.577.0",
     "next": "^15",

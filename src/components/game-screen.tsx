@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { useTimeout } from "@mantine/hooks";
 import { api } from "../../convex/_generated/api";
 import { Doc, Id } from "../../convex/_generated/dataModel";
 import Image from "next/image";
@@ -85,22 +86,27 @@ function ActiveRound({
 
   const [selected, setSelected] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
+  const lockedRef = useRef(false);
   const [showFinalIntro, setShowFinalIntro] = useState(round.isFinal);
+
+  const finalIntroTimeout = useTimeout(() => setShowFinalIntro(false), 3000);
 
   // reset state on new round
   useEffect(() => {
     setSelected(null);
     setLocked(false);
+    lockedRef.current = false;
     if (round.isFinal) {
       setShowFinalIntro(true);
-      const t = setTimeout(() => setShowFinalIntro(false), 3000);
-      return () => clearTimeout(t);
+      finalIntroTimeout.start();
     }
+    return finalIntroTimeout.clear;
   }, [round._id, round.isFinal]);
 
   const handleSelect = useCallback(
     async (option: string) => {
-      if (locked) return;
+      if (lockedRef.current) return;
+      lockedRef.current = true;
 
       setSelected(option);
       setLocked(true);
@@ -111,7 +117,7 @@ function ActiveRound({
         selectedOption: option,
       });
     },
-    [locked, round._id, currentPlayer._id, submitAnswer]
+    [round._id, currentPlayer._id, submitAnswer]
   );
 
   const connectedPlayers = useMemo(

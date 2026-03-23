@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { Copy, Check, Shield } from "lucide-react";
+import { useClipboard } from "@mantine/hooks";
 import { api } from "../../convex/_generated/api";
 import { Doc } from "../../convex/_generated/dataModel";
 import Image from "next/image";
@@ -19,7 +20,7 @@ export function Lobby({
   const players = useQuery(api.players.list, { roomId: room._id });
   const startGame = useMutation(api.rooms.start);
   const closeRoom = useMutation(api.rooms.close);
-  const [copied, setCopied] = useState(false);
+  const clipboard = useClipboard({ timeout: 2000 });
 
   // preload landmark images while players wait in the lobby so they're
   // cached by the browser before the game starts, avoiding slow loads
@@ -42,9 +43,7 @@ export function Lobby({
   const canStart = isHost && playerCount >= 2;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/room/${room.roomId}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    clipboard.copy(`${window.location.origin}/room/${room.roomId}`);
   };
 
   const handleStart = async () => {
@@ -63,7 +62,7 @@ export function Lobby({
         <div className={styles.header}>
           <button className={styles.roomCode} onClick={handleCopy} title="click to copy">
             {room.roomId}
-            {copied ? <Check size={18} /> : <Copy size={18} />}
+            {clipboard.copied ? <Check size={18} /> : <Copy size={18} />}
           </button>
         </div>
 

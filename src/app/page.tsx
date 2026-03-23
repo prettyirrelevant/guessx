@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Search, X } from "lucide-react";
+import { useDebouncedValue } from "@mantine/hooks";
 import { api } from "../../convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { ProfileSetup } from "@/components/profile-setup";
@@ -14,6 +15,8 @@ import { COUNTRIES } from "@/lib/countries";
 import styles from "./page.module.css";
 
 type Modal = "create" | "join" | null;
+
+const ROOM_CODE_RE = /\/room\/([A-Z]{2}-\d{4})/i;
 
 export default function Home() {
   const { sessionId, displayName, avatar, setDisplayName, setAvatar, hasProfile, ready } =
@@ -123,31 +126,24 @@ function CreateRoomModal({
     { id: number; name: string; picture_small: string }[]
   >([]);
   const [searching, setSearching] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const [debouncedQuery] = useDebouncedValue(artistQuery, 300);
 
   useEffect(() => {
-    if (!artistQuery.trim()) {
+    if (!debouncedQuery.trim()) {
       setArtistResults([]);
       return;
     }
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    let cancelled = false;
+    setSearching(true);
 
-    debounceRef.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        setArtistResults(await searchArtists(artistQuery));
-      } catch {
-        setArtistResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
+    searchArtists(debouncedQuery)
+      .then((results) => { if (!cancelled) setArtistResults(results); })
+      .catch(() => { if (!cancelled) setArtistResults([]); })
+      .finally(() => { if (!cancelled) setSearching(false); });
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [artistQuery]);
+    return () => { cancelled = true; };
+  }, [debouncedQuery]);
 
   const handleSubmit = async () => {
     if (mode === "music" && !selectedArtist) {
@@ -483,7 +479,7 @@ function JoinRoomModal({
               try {
                 const url = new URL(val);
                 if (url.origin === window.location.origin) {
-                  const match = url.pathname.match(/\/room\/([A-Z]{2}-\d{4})/i);
+                  const match = url.pathname.match(ROOM_CODE_RE);
                   if (match) {
                     setCode(match[1].toUpperCase());
                     return;

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useMutation } from "convex/react";
 import Link from "next/link";
 import { Copy, Check, Info, X } from "lucide-react";
+import { useClipboard, useWindowEvent } from "@mantine/hooks";
 import { api } from "../../convex/_generated/api";
 import { Doc } from "../../convex/_generated/dataModel";
 import { prepareMusicContent, preparePlaceContent } from "@/lib/actions";
@@ -33,7 +34,7 @@ export function PreparingScreen({
 }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const clipboard = useClipboard({ timeout: 2000 });
   const completePreparation = useMutation(api.rooms.completePreparation);
   const closeRoom = useMutation(api.rooms.close);
 
@@ -75,21 +76,12 @@ export function PreparingScreen({
     prepare();
   }, [isHost, prepare]);
 
-  useEffect(() => {
-    if (!isHost) return;
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isHost]);
+  useWindowEvent("beforeunload", (e) => {
+    if (isHost) e.preventDefault();
+  });
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/room/${room.roomId}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    clipboard.copy(`${window.location.origin}/room/${room.roomId}`);
   };
 
   const handleCancel = async () => {
@@ -103,7 +95,7 @@ export function PreparingScreen({
       <div className={styles.card}>
         <button className={styles.roomCode} onClick={handleCopy} title="click to copy">
           {room.roomId}
-          {copied ? <Check size={20} /> : <Copy size={20} />}
+          {clipboard.copied ? <Check size={20} /> : <Copy size={20} />}
         </button>
         <p className={styles.hint}>share this code with your friends</p>
 
