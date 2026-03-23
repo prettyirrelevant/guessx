@@ -23,7 +23,7 @@ export default function Home() {
   if (!ready) return null;
 
   return (
-    <div className={styles.container}>
+    <main className={styles.container}>
       <div className={styles.hero}>
         <h1 className={styles.logo}>
           guess<span className={styles.logoX}>X</span>
@@ -81,7 +81,7 @@ export default function Home() {
         />
       )}
 
-    </div>
+    </main>
   );
 }
 
@@ -176,7 +176,7 @@ function CreateRoomModal({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>create room</h2>
-          <button className={styles.closeBtn} onClick={onClose}>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="close">
             ✕
           </button>
         </div>
@@ -460,7 +460,7 @@ function JoinRoomModal({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>join room</h2>
-          <button className={styles.closeBtn} onClick={onClose}>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="close">
             ✕
           </button>
         </div>

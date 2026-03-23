@@ -30,20 +30,20 @@ export function AudioPlayer({ src }: { src: string }) {
     const audio = new Audio(src);
     audioRef.current = audio;
 
-    audio.addEventListener("loadedmetadata", () => {
-      setDuration(audio.duration);
-    });
-
-    audio.addEventListener("timeupdate", () => {
+    const onLoadedMetadata = () => setDuration(audio.duration);
+    const onTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
       setProgress(audio.duration ? audio.currentTime / audio.duration : 0);
-    });
-
-    audio.addEventListener("ended", () => {
+    };
+    const onEnded = () => {
       setPlaying(false);
       setProgress(0);
       setCurrentTime(0);
-    });
+    };
+
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("ended", onEnded);
 
     audio.play().then(() => {
       setPlaying(true);
@@ -52,6 +52,9 @@ export function AudioPlayer({ src }: { src: string }) {
     });
 
     return () => {
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("ended", onEnded);
       audio.pause();
       audio.src = "";
     };
