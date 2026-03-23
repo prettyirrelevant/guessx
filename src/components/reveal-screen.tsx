@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Check, X } from "lucide-react";
@@ -21,6 +22,16 @@ export function RevealScreen({
   currentPlayer: Doc<"players">;
 }) {
   const answers = useQuery(api.rounds.answers, { roundId: round._id });
+  const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    if (round.state !== "revealing") return;
+    setCountdown(10);
+    const interval = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [round._id, round.state]);
 
   if (!answers || !("selectedOption" in (answers[0] ?? {}))) {
     return (
@@ -58,7 +69,9 @@ export function RevealScreen({
           round {round.roundNumber}/{room.totalRounds}
         </span>
         <span className={styles.revealLabel}>
-          {round.state === "revealing" ? "revealing..." : "results"}
+          {round.state === "revealing"
+            ? (round.isFinal ? `final results in ${countdown}s` : `next round in ${countdown}s`)
+            : "results"}
         </span>
       </div>
 
@@ -96,13 +109,11 @@ export function RevealScreen({
                       <span className={styles.youTag}>you</span>
                     )}
                   </span>
-                  <span className={styles.resultPick}>
-                    {noAnswer
-                      ? "didn't answer"
-                      : answer.selectedOption === correctAnswer
-                        ? "correct"
-                        : answer.selectedOption}
-                  </span>
+                  {!noAnswer && answer.selectedOption !== correctAnswer && (
+                    <span className={styles.resultPick}>
+                      {answer.selectedOption}
+                    </span>
+                  )}
                 </div>
               </div>
 

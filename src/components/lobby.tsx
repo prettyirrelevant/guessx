@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { Copy, Check, Shield } from "lucide-react";
 import { api } from "../../convex/_generated/api";
@@ -20,6 +20,22 @@ export function Lobby({
   const startGame = useMutation(api.rooms.start);
   const closeRoom = useMutation(api.rooms.close);
   const [copied, setCopied] = useState(false);
+
+  // preload landmark images while players wait in the lobby so they're
+  // cached by the browser before the game starts, avoiding slow loads
+  // that eat into the round countdown
+  const mediaUrls = useQuery(
+    api.rounds.mediaUrls,
+    room.mode === "place" ? { roomId: room._id } : "skip",
+  );
+
+  useEffect(() => {
+    if (!mediaUrls) return;
+    mediaUrls.forEach((url) => {
+      const img = new window.Image();
+      img.src = url;
+    });
+  }, [mediaUrls]);
 
   const isHost = room.hostId === sessionId;
   const playerCount = players?.length ?? 0;

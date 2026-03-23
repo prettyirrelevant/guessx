@@ -6,24 +6,34 @@
   margin-bottom: 20px;
 }
 
-.track {
+.beads {
   flex: 1;
-  height: 6px;
+  display: flex;
+  gap: 3px;
+}
+
+.bead {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.beadActive {
+  background: var(--accent);
+}
+
+.beadWarning {
+  background: #f5c842;
+}
+
+.beadUrgent {
+  background: var(--accent3);
+  animation: beadPulse 0.6s ease infinite;
+}
+
+.beadInactive {
   background: var(--surface2);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent2), var(--accent));
-  border-radius: 3px;
-  transition: width 0.1s linear;
-}
-
-.fill.urgent {
-  background: linear-gradient(90deg, var(--accent3), #ff9f5c);
-  animation: glowPulse 0.8s ease infinite;
 }
 
 .time {
@@ -35,12 +45,16 @@
   text-align: right;
 }
 
+.timeWarning {
+  color: #f5c842;
+}
+
 .timeUrgent {
   color: var(--accent3);
   animation: pulse 0.5s ease infinite;
 }
 
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(255, 92, 92, 0.3); }
-  50% { box-shadow: 0 0 16px rgba(255, 92, 92, 0.6); }
+@keyframes beadPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }

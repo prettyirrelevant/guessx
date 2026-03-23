@@ -10,38 +10,50 @@ export function TimerBar({
   startedAt?: number;
   endsAt?: number;
 }) {
-  const [progress, setProgress] = useState(1);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [totalSeconds, setTotalSeconds] = useState(0);
 
   useEffect(() => {
     if (!startedAt || !endsAt) return;
 
-    const total = endsAt - startedAt;
+    const total = Math.ceil((endsAt - startedAt) / 1000);
+    setTotalSeconds(total);
 
     const update = () => {
-      const now = Date.now();
-      const elapsed = now - startedAt;
-      const remaining = Math.max(0, 1 - elapsed / total);
-      setProgress(remaining);
-      setSecondsLeft(Math.ceil(Math.max(0, (endsAt - now) / 1000)));
+      const remaining = Math.ceil(Math.max(0, (endsAt - Date.now()) / 1000));
+      setSecondsLeft(remaining);
     };
 
     update();
-    const interval = setInterval(update, 50);
+    const interval = setInterval(update, 200);
     return () => clearInterval(interval);
   }, [startedAt, endsAt]);
 
   const isUrgent = secondsLeft <= 5;
+  const isWarning = secondsLeft <= 10 && !isUrgent;
 
   return (
     <div className={styles.container}>
-      <div className={styles.track}>
-        <div
-          className={`${styles.fill} ${isUrgent ? styles.urgent : ""}`}
-          style={{ width: `${progress * 100}%` }}
-        />
+      <div className={styles.beads}>
+        {Array.from({ length: totalSeconds }).map((_, i) => {
+          const isActive = i < secondsLeft;
+
+          let stateClass = styles.beadInactive;
+          if (isActive) {
+            if (isUrgent) stateClass = styles.beadUrgent;
+            else if (isWarning) stateClass = styles.beadWarning;
+            else stateClass = styles.beadActive;
+          }
+
+          return (
+            <div
+              key={i}
+              className={`${styles.bead} ${stateClass}`}
+            />
+          );
+        })}
       </div>
-      <span className={`${styles.time} ${isUrgent ? styles.timeUrgent : ""}`}>
+      <span className={`${styles.time} ${isUrgent ? styles.timeUrgent : isWarning ? styles.timeWarning : ""}`}>
         {secondsLeft}s
       </span>
     </div>

@@ -241,6 +241,22 @@
   filter: grayscale(1);
 }
 
+.avatarOverflow {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-right: -6px;
+  flex-shrink: 0;
+}
+
 .answeredText {
   font-family: var(--font-dm-mono), monospace;
   font-size: 11px;

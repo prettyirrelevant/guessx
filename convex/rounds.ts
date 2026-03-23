@@ -26,6 +26,18 @@ export const get = query({
   },
 });
 
+export const mediaUrls = query({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, args) => {
+    const rounds = await ctx.db
+      .query("rounds")
+      .withIndex("by_roomId", (q) => q.eq("roomId", args.roomId))
+      .collect();
+
+    return rounds.map((r) => r.mediaUrl);
+  },
+});
+
 export const answers = query({
   args: { roundId: v.id("rounds") },
   handler: async (ctx, args) => {

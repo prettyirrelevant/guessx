@@ -193,7 +193,7 @@ function ActiveRound({
       <div className={styles.bottomBar}>
         <div className={styles.answeredInfo}>
           <div className={styles.answeredAvatars}>
-            {connectedPlayers.map((player) => (
+            {connectedPlayers.slice(0, 8).map((player) => (
               <Image
                 unoptimized
                 key={player._id}
@@ -207,14 +207,16 @@ function ActiveRound({
                 height={28}
               />
             ))}
+            {connectedPlayers.length > 8 && (
+              <span className={styles.avatarOverflow}>
+                +{connectedPlayers.length - 8}
+              </span>
+            )}
           </div>
           <span className={styles.answeredText}>
             {answeredPlayerIds.size}/{connectedPlayers.length} locked in
           </span>
         </div>
-        {hasAnswered && (
-          <span className={styles.lockedBadge}>answer locked</span>
-        )}
         {currentPlayer.streak >= 3 && (
           <span className={styles.streakBadge}>
             🔥 {currentPlayer.streak} streak
