@@ -1,5 +1,5 @@
 .container {
-  min-height: 100dvh;
+  min-height: calc(100dvh - 52px);
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -269,7 +269,7 @@
 
 /* final round intro */
 .finalIntro {
-  min-height: 100dvh;
+  min-height: calc(100dvh - 52px);
   display: flex;
   align-items: center;
   justify-content: center;

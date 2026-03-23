@@ -46,8 +46,6 @@ export const heartbeat = mutation({
       lastSeenAt: now,
       ...(player.status === "disconnected" ? { disconnectedAt: undefined } : {}),
     });
-
-    await ctx.db.patch(args.roomId, { lastActivityAt: now });
   },
 });
 

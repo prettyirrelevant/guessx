@@ -1,5 +1,5 @@
 .container {
-  min-height: 100dvh;
+  min-height: calc(100dvh - 52px);
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -233,6 +233,8 @@
   border-radius: var(--radius-md);
   padding: 16px;
   box-shadow: var(--shadow-card);
+  max-height: 280px;
+  overflow-y: auto;
 }
 
 .standingsLabel {
