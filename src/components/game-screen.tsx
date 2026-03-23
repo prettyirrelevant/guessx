@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Doc, Id } from "../../convex/_generated/dataModel";
@@ -114,11 +114,14 @@ function ActiveRound({
     [locked, round._id, currentPlayer._id, submitAnswer]
   );
 
-  const connectedPlayers = players.filter((p) => p.status === "connected");
-  const answeredPlayerIds = new Set(
-    answers?.filter((a) => "playerId" in a).map((a) => a.playerId) ?? []
+  const connectedPlayers = useMemo(
+    () => players.filter((p) => p.status === "connected"),
+    [players],
   );
-  const hasAnswered = answeredPlayerIds.has(currentPlayer._id);
+  const answeredPlayerIds = useMemo(
+    () => new Set(answers?.filter((a) => "playerId" in a).map((a) => a.playerId) ?? []),
+    [answers],
+  );
 
   if (showFinalIntro) {
     return (

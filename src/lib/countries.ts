@@ -1,31 +1,23 @@
 // countries with strong wikimedia landmark coverage
-// names use Intl.DisplayNames for proper locale-aware display
-const COUNTRY_CODES = [
-  "US", "GB", "FR", "DE", "IT", "ES", "JP", "CN", "IN", "BR",
-  "AU", "EG", "MX", "GR", "TR", "RU", "TH", "ZA", "PE", "NG",
-] as const;
-
-function buildCountryList(): { code: string; name: string }[] {
-  try {
-    const displayNames = new Intl.DisplayNames(undefined, { type: "region" });
-    return COUNTRY_CODES.map((code) => ({
-      code,
-      name: displayNames.of(code) ?? code,
-    }));
-  } catch {
-    // fallback if Intl.DisplayNames is unavailable
-    return COUNTRY_CODES.map((code) => ({ code, name: code }));
-  }
-}
-
-export const COUNTRIES = buildCountryList().sort((a, b) => {
-  try {
-    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-    const region = locale.split("-").pop()?.toUpperCase();
-    if (a.code === region) return -1;
-    if (b.code === region) return 1;
-  } catch {
-    // ignore
-  }
-  return a.name.localeCompare(b.name);
-});
+export const COUNTRIES: { code: string; name: string }[] = [
+  { code: "AU", name: "Australia" },
+  { code: "BR", name: "Brazil" },
+  { code: "CN", name: "China" },
+  { code: "EG", name: "Egypt" },
+  { code: "FR", name: "France" },
+  { code: "DE", name: "Germany" },
+  { code: "GR", name: "Greece" },
+  { code: "IN", name: "India" },
+  { code: "IT", name: "Italy" },
+  { code: "JP", name: "Japan" },
+  { code: "MX", name: "Mexico" },
+  { code: "NG", name: "Nigeria" },
+  { code: "PE", name: "Peru" },
+  { code: "RU", name: "Russia" },
+  { code: "ZA", name: "South Africa" },
+  { code: "ES", name: "Spain" },
+  { code: "TH", name: "Thailand" },
+  { code: "TR", name: "Turkey" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "US", name: "United States" },
+];

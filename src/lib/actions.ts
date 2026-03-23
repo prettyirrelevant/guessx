@@ -69,19 +69,16 @@ export async function prepareMusicContent(
   const artistTracks = shuffle(topData.data.filter((t) => t.preview));
 
   // related artists' tracks are only used as distractors
-  const distractorTracks: Track[] = [];
-  for (const related of shuffle(relatedData.data)) {
-    if (distractorTracks.length >= 30) break;
-
-    try {
-      const data = await fetchJson<{ data: Track[] }>(
+  const relatedResults = await Promise.allSettled(
+    shuffle(relatedData.data).slice(0, 10).map((related) =>
+      fetchJson<{ data: Track[] }>(
         `https://api.deezer.com/artist/${related.id}/top?limit=5`,
-      );
-      distractorTracks.push(...data.data.filter((t) => t.preview));
-    } catch {
-      // skip failed fetches
-    }
-  }
+      )
+    ),
+  );
+  const distractorTracks: Track[] = relatedResults.flatMap((r) =>
+    r.status === "fulfilled" ? r.value.data.filter((t) => t.preview) : [],
+  );
 
   const artistLabels = new Set(artistTracks.map((t) => trackLabel(t)));
   const distractorLabels = [...new Set(distractorTracks.map((t) => trackLabel(t)))].filter(
@@ -568,14 +565,24 @@ export async function preparePlaceContent(
   const landmarks = LANDMARKS[country] ?? LANDMARKS["US"];
   const shuffled = shuffle(landmarks);
 
+  // fetch images in parallel, then build rounds from successful results
+  const candidates = shuffled.slice(0, Math.max(totalRounds * 3, 15));
+  const imageResults = await Promise.allSettled(
+    candidates.map(async (place) => ({
+      place,
+      imageUrl: await fetchLandmarkImage(place),
+    })),
+  );
+
+  const resolved = imageResults.flatMap((r) =>
+    r.status === "fulfilled" && r.value.imageUrl ? [r.value] : [],
+  );
+
   const rounds: RoundContent[] = [];
   const usedNames = new Set<string>();
 
-  for (const place of shuffled) {
+  for (const { place, imageUrl } of resolved) {
     if (rounds.length >= totalRounds) break;
-
-    const imageUrl = await fetchLandmarkImage(place);
-    if (!imageUrl) continue;
 
     usedNames.add(place);
 
@@ -593,7 +600,7 @@ export async function preparePlaceContent(
       roundNumber: rounds.length + 1,
       correctAnswer: place,
       options,
-      mediaUrl: imageUrl,
+      mediaUrl: imageUrl!,
       mediaTitle: place,
       isFinal: rounds.length === totalRounds - 1,
     });

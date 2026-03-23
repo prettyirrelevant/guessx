@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Check, X } from "lucide-react";
@@ -45,17 +45,26 @@ export function RevealScreen({
   const correctAnswer = round.correctAnswer;
 
   // build player results sorted by position (correct first, then wrong, then no answer)
-  const playerResults = players.map((player) => {
-    const answer = fullAnswers.find((a) => a.playerId === player._id);
-    return { player, answer };
-  }).sort((a, b) => {
-    if (a.answer?.correct && !b.answer?.correct) return -1;
-    if (!a.answer?.correct && b.answer?.correct) return 1;
-    if (a.answer && b.answer) return a.answer.submittedAt - b.answer.submittedAt;
-    if (a.answer && !b.answer) return -1;
-    if (!a.answer && b.answer) return 1;
-    return 0;
-  });
+  const playerResults = useMemo(
+    () =>
+      players.map((player) => {
+        const answer = fullAnswers.find((a) => a.playerId === player._id);
+        return { player, answer };
+      }).sort((a, b) => {
+        if (a.answer?.correct && !b.answer?.correct) return -1;
+        if (!a.answer?.correct && b.answer?.correct) return 1;
+        if (a.answer && b.answer) return a.answer.submittedAt - b.answer.submittedAt;
+        if (a.answer && !b.answer) return -1;
+        if (!a.answer && b.answer) return 1;
+        return 0;
+      }),
+    [players, fullAnswers],
+  );
+
+  const standings = useMemo(
+    () => [...players].sort((a, b) => b.totalScore - a.totalScore),
+    [players],
+  );
 
   const answerTitle =
     room.mode === "music" && round.mediaTitle
@@ -143,9 +152,7 @@ export function RevealScreen({
 
       <div className={styles.standings}>
         <div className={styles.standingsLabel}>standings</div>
-        {[...players]
-          .sort((a, b) => b.totalScore - a.totalScore)
-          .map((player, i) => (
+        {standings.map((player, i) => (
             <div
               key={player._id}
               className={`${styles.standingRow} ${

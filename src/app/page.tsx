@@ -105,7 +105,14 @@ function CreateRoomModal({
   const [maxPlayers, setMaxPlayers] = useState(6);
   const [totalRounds, setTotalRounds] = useState(5);
   const [roundDuration, setRoundDuration] = useState(20_000);
-  const [country, setCountry] = useState(COUNTRIES[0].code);
+  const [country, setCountry] = useState(() => {
+    try {
+      const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+      const region = locale.split("-").pop()?.toUpperCase();
+      if (region && COUNTRIES.some((c) => c.code === region)) return region;
+    } catch {}
+    return COUNTRIES[0].code;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

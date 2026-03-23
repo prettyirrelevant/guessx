@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 import styles from "./audio-player.module.css";
+
+// stable wave bar heights computed once per mount
+const WAVE_BAR_HEIGHTS = Array.from({ length: 32 }, (_, i) => {
+  const pseudo = Math.abs(Math.sin(i * 2.1) * 43758.5453) % 1;
+  return 20 + Math.sin(i * 0.8) * 15 + pseudo * 10;
+});
 
 export function AudioPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -16,15 +22,17 @@ export function AudioPlayer({ src }: { src: string }) {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (playing) {
-      audio.pause();
-    } else {
-      audio.play().catch(() => {
-        // browser blocked autoplay, user needs to click
-      });
-    }
-    setPlaying(!playing);
-  }, [playing]);
+    setPlaying((prev) => {
+      if (prev) {
+        audio.pause();
+      } else {
+        audio.play().catch(() => {
+          // browser blocked autoplay, user needs to click
+        });
+      }
+      return !prev;
+    });
+  }, []);
 
   useEffect(() => {
     const audio = new Audio(src);
@@ -101,8 +109,7 @@ export function AudioPlayer({ src }: { src: string }) {
           </div>
           {/* decorative wave bars */}
           <div className={styles.waveBars}>
-            {Array.from({ length: 32 }).map((_, i) => {
-              const height = 20 + Math.sin(i * 0.8) * 15 + Math.random() * 10;
+            {WAVE_BAR_HEIGHTS.map((height, i) => {
               const filled = i / 32 <= progress;
               return (
                 <div
@@ -126,7 +133,7 @@ export function AudioPlayer({ src }: { src: string }) {
 
       <button
         className={styles.muteBtn}
-        onClick={() => setMuted(!muted)}
+        onClick={() => setMuted((prev) => !prev)}
         aria-label={muted ? "unmute" : "mute"}
       >
         {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
