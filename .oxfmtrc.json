@@ -1,0 +1,18 @@
+{
+  "printWidth": 100,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "tabWidth": 2,
+  "arrowParens": "always",
+  "sortImports": {
+    "groups": ["builtin", "external", "convex", "app", ["parent", "sibling", "index"], "style"],
+    "customGroups": [
+      { "groupName": "convex", "elementNamePattern": ["@convex/**"] },
+      { "groupName": "app", "elementNamePattern": ["@/**"] }
+    ],
+    "internalPattern": [],
+    "order": "desc",
+    "newlinesBetween": true
+  }
+}

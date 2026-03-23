@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
+
 import { AVATAR_SEEDS, getAvatarUrl } from "@/lib/session";
+
 import styles from "./avatar-picker.module.css";
 
 export function AvatarPicker({
@@ -22,13 +24,7 @@ export function AvatarPicker({
             type="button"
             aria-label={`select ${seed} avatar`}
           >
-            <Image
-              src={getAvatarUrl(seed)}
-              alt={seed}
-              width={32}
-              height={32}
-              unoptimized
-            />
+            <Image src={getAvatarUrl(seed)} alt={seed} width={32} height={32} unoptimized />
           </button>
         ))}
       </div>

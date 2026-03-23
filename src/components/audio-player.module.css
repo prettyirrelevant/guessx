@@ -87,8 +87,12 @@
 }
 
 @keyframes waveMove {
-  from { transform: scaleY(1); }
-  to { transform: scaleY(0.6); }
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(0.6);
+  }
 }
 
 .timeRow {

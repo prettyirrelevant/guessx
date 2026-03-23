@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { useToggle } from "@mantine/hooks";
+
 import styles from "./audio-player.module.css";
 
 function formatTime(s: number) {
@@ -60,11 +61,14 @@ export function AudioPlayer({ src }: { src: string }) {
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("ended", onEnded);
 
-    audio.play().then(() => {
-      setPlaying(true);
-    }).catch(() => {
-      // browser blocked autoplay, user needs to click
-    });
+    audio
+      .play()
+      .then(() => {
+        setPlaying(true);
+      })
+      .catch(() => {
+        // browser blocked autoplay, user needs to click
+      });
 
     return () => {
       audio.removeEventListener("loadedmetadata", onLoadedMetadata);
@@ -101,12 +105,18 @@ export function AudioPlayer({ src }: { src: string }) {
       </button>
 
       <div className={styles.controls}>
-        <div className={styles.waveform} onClick={handleSeek}>
+        <div
+          className={styles.waveform}
+          role="slider"
+          aria-label="seek"
+          aria-valuenow={Math.round(progress * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          tabIndex={0}
+          onClick={handleSeek}
+        >
           <div className={styles.waveTrack}>
-            <div
-              className={styles.waveFill}
-              style={{ width: `${progress * 100}%` }}
-            />
+            <div className={styles.waveFill} style={{ width: `${progress * 100}%` }} />
           </div>
           {/* decorative wave bars */}
           <div className={styles.waveBars}>

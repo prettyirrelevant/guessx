@@ -3,8 +3,9 @@
 import { useEffect } from "react";
 import { useMutation } from "convex/react";
 import { useInterval } from "@mantine/hooks";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+
+import { Id } from "@convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
 
 export function useHeartbeat({
   roomId,
@@ -15,20 +16,20 @@ export function useHeartbeat({
 }) {
   const heartbeat = useMutation(api.players.heartbeat);
 
-  const interval = useInterval(() => {
+  const { start, stop } = useInterval(() => {
     if (roomId && userId) heartbeat({ roomId, userId });
   }, 10_000);
 
   useEffect(() => {
     if (!roomId || !userId) {
-      interval.stop();
+      stop();
       return;
     }
 
     // send initial heartbeat immediately
     heartbeat({ roomId, userId });
-    interval.start();
+    start();
 
-    return interval.stop;
-  }, [roomId, userId, heartbeat]);
+    return stop;
+  }, [roomId, userId, heartbeat, start, stop]);
 }

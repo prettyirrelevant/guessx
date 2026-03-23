@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "typescript", "unicorn", "nextjs", "react", "jsx-a11y"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "react/no-array-index-key": "off",
+    "import/no-unassigned-import": "off",
+    "jsx-a11y/no-autofocus": "off",
+    "jsx-a11y/label-has-associated-control": "off",
+    "jsx-a11y/click-events-have-key-events": "off",
+    "no-await-in-loop": "off"
+  },
+  "settings": {
+    "next": {
+      "rootDir": "."
+    },
+    "react": {
+      "version": "19.0"
+    }
+  },
+  "ignorePatterns": ["convex/**", ".next/**", "node_modules/**"]
+}

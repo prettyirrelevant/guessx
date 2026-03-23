@@ -2,19 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useInterval } from "@mantine/hooks";
+
 import styles from "./timer-bar.module.css";
 
-export function TimerBar({
-  startedAt,
-  endsAt,
-}: {
-  startedAt?: number;
-  endsAt?: number;
-}) {
+export function TimerBar({ startedAt, endsAt }: { startedAt?: number; endsAt?: number }) {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(0);
 
-  const timer = useInterval(() => {
+  const { start, stop } = useInterval(() => {
     if (endsAt) {
       setSecondsLeft(Math.ceil(Math.max(0, (endsAt - Date.now()) / 1000)));
     }
@@ -22,16 +17,16 @@ export function TimerBar({
 
   useEffect(() => {
     if (!startedAt || !endsAt) {
-      timer.stop();
+      stop();
       return;
     }
 
     setTotalSeconds(Math.ceil((endsAt - startedAt) / 1000));
     setSecondsLeft(Math.ceil(Math.max(0, (endsAt - Date.now()) / 1000)));
-    timer.start();
+    start();
 
-    return timer.stop;
-  }, [startedAt, endsAt]);
+    return stop;
+  }, [startedAt, endsAt, start, stop]);
 
   const isUrgent = secondsLeft <= 5;
   const isWarning = secondsLeft <= 10 && !isUrgent;
@@ -49,15 +44,12 @@ export function TimerBar({
             else stateClass = styles.beadActive;
           }
 
-          return (
-            <div
-              key={i}
-              className={`${styles.bead} ${stateClass}`}
-            />
-          );
+          return <div key={i} className={`${styles.bead} ${stateClass}`} />;
         })}
       </div>
-      <span className={`${styles.time} ${isUrgent ? styles.timeUrgent : isWarning ? styles.timeWarning : ""}`}>
+      <span
+        className={`${styles.time} ${isUrgent ? styles.timeUrgent : isWarning ? styles.timeWarning : ""}`}
+      >
         {secondsLeft}s
       </span>
     </div>

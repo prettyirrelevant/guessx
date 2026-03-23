@@ -127,8 +127,12 @@
 }
 
 @keyframes subtleZoom {
-  from { transform: scale(1); }
-  to { transform: scale(1.05); }
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.05);
+  }
 }
 
 /* options */

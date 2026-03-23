@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 
@@ -73,7 +74,7 @@ export const completePreparation = mutation({
         mediaTitle: v.optional(v.string()),
         mediaArtist: v.optional(v.string()),
         isFinal: v.boolean(),
-      })
+      }),
     ),
   },
   handler: async (ctx, args) => {
@@ -193,9 +194,7 @@ export const start = mutation({
 
     const firstRound = await ctx.db
       .query("rounds")
-      .withIndex("by_roomId_roundNumber", (q) =>
-        q.eq("roomId", args.roomId).eq("roundNumber", 1)
-      )
+      .withIndex("by_roomId_roundNumber", (q) => q.eq("roomId", args.roomId).eq("roundNumber", 1))
       .unique();
 
     if (firstRound) {
@@ -205,11 +204,9 @@ export const start = mutation({
         endsAt: now + room.roundDuration,
       });
 
-      await ctx.scheduler.runAt(
-        now + room.roundDuration,
-        internal.scheduling.endRound,
-        { roundId: firstRound._id }
-      );
+      await ctx.scheduler.runAt(now + room.roundDuration, internal.scheduling.endRound, {
+        roundId: firstRound._id,
+      });
     }
 
     return { success: true };

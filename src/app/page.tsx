@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Search, X } from "lucide-react";
+import { useMutation } from "convex/react";
 import { useDebouncedValue } from "@mantine/hooks";
-import { api } from "../../convex/_generated/api";
+
+import { api } from "@convex/_generated/api";
+
 import { useSession } from "@/lib/session";
-import { ProfileSetup } from "@/components/profile-setup";
+import { COUNTRIES } from "@/lib/countries";
 import { POPULAR_ARTISTS } from "@/lib/artists";
 import { searchArtists } from "@/lib/actions";
-import { COUNTRIES } from "@/lib/countries";
+import { ProfileSetup } from "@/components/profile-setup";
+
 import styles from "./page.module.css";
 
 type Modal = "create" | "join" | null;
@@ -49,7 +52,6 @@ export default function Home() {
         )}
       </div>
 
-
       {!hasProfile && (
         <div className={styles.profilePrompt}>
           <ProfileSetup
@@ -83,7 +85,6 @@ export default function Home() {
           onClose={() => setModal(null)}
         />
       )}
-
     </main>
   );
 }
@@ -138,11 +139,19 @@ function CreateRoomModal({
     setSearching(true);
 
     searchArtists(debouncedQuery)
-      .then((results) => { if (!cancelled) setArtistResults(results); })
-      .catch(() => { if (!cancelled) setArtistResults([]); })
-      .finally(() => { if (!cancelled) setSearching(false); });
+      .then((results) => {
+        if (!cancelled) setArtistResults(results);
+      })
+      .catch(() => {
+        if (!cancelled) setArtistResults([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSearching(false);
+      });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [debouncedQuery]);
 
   const handleSubmit = async () => {
@@ -175,8 +184,8 @@ function CreateRoomModal({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div className={styles.overlay} role="dialog" onClick={onClose}>
+      <div className={styles.modal} role="presentation" onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>create room</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="close">
@@ -252,9 +261,7 @@ function CreateRoomModal({
                   </button>
                 </div>
 
-                {searching && (
-                  <div className={styles.searchStatus}>searching...</div>
-                )}
+                {searching && <div className={styles.searchStatus}>searching...</div>}
 
                 {!searching && artistQuery.trim() && artistResults.length === 0 && (
                   <div className={styles.searchStatus}>no artists found</div>
@@ -459,8 +466,8 @@ function JoinRoomModal({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div className={styles.overlay} role="dialog" onClick={onClose}>
+      <div className={styles.modal} role="presentation" onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>join room</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="close">

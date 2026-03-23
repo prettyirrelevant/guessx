@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 
@@ -20,7 +21,7 @@ export const leaderboard = query({
       .withIndex("by_roomId", (q) => q.eq("roomId", args.roomId))
       .collect();
 
-    return players.sort((a, b) => b.totalScore - a.totalScore);
+    return [...players].sort((a, b) => b.totalScore - a.totalScore);
   },
 });
 
@@ -32,9 +33,7 @@ export const heartbeat = mutation({
   handler: async (ctx, args) => {
     const player = await ctx.db
       .query("players")
-      .withIndex("by_roomId_userId", (q) =>
-        q.eq("roomId", args.roomId).eq("userId", args.userId)
-      )
+      .withIndex("by_roomId_userId", (q) => q.eq("roomId", args.roomId).eq("userId", args.userId))
       .unique();
 
     if (!player) return;

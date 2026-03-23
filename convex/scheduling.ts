@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+
 import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 
@@ -136,7 +137,7 @@ export const endReveal = internalMutation({
     const nextRound = await ctx.db
       .query("rounds")
       .withIndex("by_roomId_roundNumber", (q) =>
-        q.eq("roomId", round.roomId).eq("roundNumber", round.roundNumber + 1)
+        q.eq("roomId", round.roomId).eq("roundNumber", round.roundNumber + 1),
       )
       .unique();
 
@@ -192,7 +193,7 @@ export const checkDisconnect = internalMutation({
 
     // promote next host if the disconnected player was the host
     if (room.hostId === player.userId) {
-      const nextHost = connected.sort((a, b) => a.joinedAt - b.joinedAt)[0];
+      const nextHost = [...connected].sort((a, b) => a.joinedAt - b.joinedAt)[0];
       if (nextHost) {
         await ctx.db.patch(args.roomId, { hostId: nextHost.userId });
       }

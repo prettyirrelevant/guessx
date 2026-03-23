@@ -1,22 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { Copy, Check, Shield } from "lucide-react";
-import { useClipboard } from "@mantine/hooks";
-import { api } from "../../convex/_generated/api";
-import { Doc } from "../../convex/_generated/dataModel";
 import Image from "next/image";
+import { Copy, Check, Shield } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { useClipboard } from "@mantine/hooks";
+
+import { Doc } from "@convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+
 import { getAvatarUrl } from "@/lib/session";
+
 import styles from "./lobby.module.css";
 
-export function Lobby({
-  room,
-  sessionId,
-}: {
-  room: Doc<"rooms">;
-  sessionId: string;
-}) {
+export function Lobby({ room, sessionId }: { room: Doc<"rooms">; sessionId: string }) {
   const players = useQuery(api.players.list, { roomId: room._id });
   const startGame = useMutation(api.rooms.start);
   const closeRoom = useMutation(api.rooms.close);
@@ -103,9 +100,7 @@ export function Lobby({
                   height={28}
                 />
                 <span className={styles.playerName}>{player.displayName}</span>
-                {player.userId === room.hostId && (
-                  <Shield size={18} className={styles.hostIcon} />
-                )}
+                {player.userId === room.hostId && <Shield size={18} className={styles.hostIcon} />}
               </div>
             ))}
 
@@ -120,12 +115,10 @@ export function Lobby({
 
         {isHost && (
           <div className={styles.hostActions}>
-            <button
-              className={styles.startBtn}
-              onClick={handleStart}
-              disabled={!canStart}
-            >
-              {canStart ? "start game" : `need ${2 - playerCount} more player${2 - playerCount > 1 ? "s" : ""}`}
+            <button className={styles.startBtn} onClick={handleStart} disabled={!canStart}>
+              {canStart
+                ? "start game"
+                : `need ${2 - playerCount} more player${2 - playerCount > 1 ? "s" : ""}`}
             </button>
             <button className={styles.closeBtn} onClick={handleClose}>
               close room
@@ -133,11 +126,7 @@ export function Lobby({
           </div>
         )}
 
-        {!isHost && (
-          <div className={styles.waitingMsg}>
-            waiting for the host to start...
-          </div>
-        )}
+        {!isHost && <div className={styles.waitingMsg}>waiting for the host to start...</div>}
       </div>
     </div>
   );

@@ -1,26 +1,20 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useMutation } from "convex/react";
-import Link from "next/link";
 import { Copy, Check, Info, X } from "lucide-react";
+import { useMutation } from "convex/react";
 import { useClipboard, useWindowEvent } from "@mantine/hooks";
-import { api } from "../../convex/_generated/api";
-import { Doc } from "../../convex/_generated/dataModel";
+
+import { Doc } from "@convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+
 import { prepareMusicContent, preparePlaceContent } from "@/lib/actions";
+
 import styles from "./preparing-screen.module.css";
 
 const STEPS = {
-  music: [
-    "setting up your room",
-    "choosing your tracks",
-    "preparing the choices",
-  ],
-  place: [
-    "setting up your room",
-    "picking your locations",
-    "preparing the choices",
-  ],
+  music: ["setting up your room", "choosing your tracks", "preparing the choices"],
+  place: ["setting up your room", "picking your locations", "preparing the choices"],
 };
 
 export function PreparingScreen({
@@ -50,14 +44,8 @@ export function PreparingScreen({
 
       const content =
         room.mode === "music"
-          ? await prepareMusicContent(
-              room.artist ?? "3933641",
-              room.totalRounds,
-            )
-          : await preparePlaceContent(
-              room.country ?? "US",
-              room.totalRounds,
-            );
+          ? await prepareMusicContent(room.artist ?? "3933641", room.totalRounds)
+          : await preparePlaceContent(room.country ?? "US", room.totalRounds);
 
       setCurrentStep(2);
       await new Promise((r) => setTimeout(r, 500));

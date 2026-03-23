@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import styles from "./error.module.css";
 
 export default function NotFound() {
@@ -10,9 +11,7 @@ export default function NotFound() {
         </h1>
         <p className={styles.code}>404</p>
         <p className={styles.message}>page not found</p>
-        <p className={styles.hint}>
-          this page doesn&apos;t exist or may have been moved.
-        </p>
+        <p className={styles.hint}>this page doesn&apos;t exist or may have been moved.</p>
         <Link href="/" className={styles.homeLink}>
           back to home
         </Link>

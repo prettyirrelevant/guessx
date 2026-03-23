@@ -1,20 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Doc } from "../../convex/_generated/dataModel";
 import Image from "next/image";
+import { useQuery } from "convex/react";
+
+import { Doc } from "@convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+
 import { getAvatarUrl } from "@/lib/session";
+
 import styles from "./results-screen.module.css";
 
-export function ResultsScreen({
-  room,
-  sessionId,
-}: {
-  room: Doc<"rooms">;
-  sessionId: string;
-}) {
+export function ResultsScreen({ room, sessionId }: { room: Doc<"rooms">; sessionId: string }) {
   const leaderboard = useQuery(api.players.leaderboard, { roomId: room._id });
 
   if (!leaderboard) {
@@ -48,17 +45,11 @@ export function ResultsScreen({
             <div
               key={player._id}
               className={`${styles.podiumSlot} ${
-                i === 0
-                  ? styles.first
-                  : i === 1
-                    ? styles.second
-                    : styles.third
+                i === 0 ? styles.first : i === 1 ? styles.second : styles.third
               }`}
               style={{ animationDelay: `${i * 0.15}s` }}
             >
-              <div className={styles.podiumRank}>
-                {i === 0 ? "👑" : `#${i + 1}`}
-              </div>
+              <div className={styles.podiumRank}>{i === 0 ? "👑" : `#${i + 1}`}</div>
               <Image
                 unoptimized
                 src={getAvatarUrl(player.avatar)}
@@ -77,9 +68,7 @@ export function ResultsScreen({
           {leaderboard.map((player, i) => (
             <div
               key={player._id}
-              className={`${styles.listRow} ${
-                player.userId === sessionId ? styles.listYou : ""
-              }`}
+              className={`${styles.listRow} ${player.userId === sessionId ? styles.listYou : ""}`}
             >
               <span className={styles.listRank}>#{i + 1}</span>
               <Image

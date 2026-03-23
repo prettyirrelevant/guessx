@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+
 import { AvatarPicker } from "@/components/avatar-picker";
+
 import styles from "./profile-setup.module.css";
 
 export function ProfileSetup({
@@ -42,18 +44,16 @@ export function ProfileSetup({
         value={name}
         onChange={(e) => setName(e.target.value)}
         maxLength={20}
-        onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSave();
+        }}
       />
       <div className={styles.avatarSection}>
         <div className={styles.avatarLabel}>pick your avatar</div>
         <AvatarPicker selected={selectedAvatar} onSelect={handleAvatarChange} />
       </div>
-      <button
-        className={styles.saveBtn}
-        disabled={!canSave}
-        onClick={handleSave}
-      >
-{submitLabel}
+      <button className={styles.saveBtn} disabled={!canSave} onClick={handleSave}>
+        {submitLabel}
       </button>
     </div>
   );

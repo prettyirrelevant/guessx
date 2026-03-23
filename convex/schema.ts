@@ -1,5 +1,5 @@
-import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { defineSchema, defineTable } from "convex/server";
 
 export default defineSchema({
   rooms: defineTable({
@@ -10,7 +10,7 @@ export default defineSchema({
       v.literal("waiting"),
       v.literal("in_progress"),
       v.literal("finished"),
-      v.literal("abandoned")
+      v.literal("abandoned"),
     ),
     mode: v.union(v.literal("music"), v.literal("place")),
     maxPlayers: v.number(),
@@ -47,7 +47,7 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("active"),
       v.literal("revealing"),
-      v.literal("complete")
+      v.literal("complete"),
     ),
     correctAnswer: v.string(),
     options: v.array(v.string()),

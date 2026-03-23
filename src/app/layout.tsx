@@ -1,7 +1,10 @@
-import type { Metadata } from "next";
 import { Syne, DM_Mono } from "next/font/google";
-import { ConvexClientProvider } from "@/components/convex-client-provider";
+import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
+
 import { Footer } from "@/components/footer";
+import { ConvexClientProvider } from "@/components/convex-client-provider";
+
 import "./globals.css";
 
 const syne = Syne({
@@ -53,11 +56,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${syne.variable} ${dmMono.variable}`}>
       <body style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
@@ -65,6 +64,7 @@ export default function RootLayout({
           {children}
           <Footer />
         </ConvexClientProvider>
+        <Analytics />
       </body>
     </html>
   );

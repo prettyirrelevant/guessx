@@ -1,31 +1,27 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
 import Link from "next/link";
-import { api } from "../../../../convex/_generated/api";
+import { useQuery, useMutation } from "convex/react";
+
+import { api } from "@convex/_generated/api";
+
 import { useSession } from "@/lib/session";
 import { useHeartbeat } from "@/lib/heartbeat";
+import { ResultsScreen } from "@/components/results-screen";
 import { ProfileSetup } from "@/components/profile-setup";
 import { PreparingScreen } from "@/components/preparing-screen";
 import { Lobby } from "@/components/lobby";
 import { GameScreen } from "@/components/game-screen";
-import { ResultsScreen } from "@/components/results-screen";
+
 import styles from "./page.module.css";
 
-export default function RoomPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+export default function RoomPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const { sessionId, displayName, avatar, setDisplayName, setAvatar, hasProfile, ready } =
     useSession();
   const room = useQuery(api.rooms.get, { roomCode: code });
-  const players = useQuery(
-    api.players.list,
-    room?._id ? { roomId: room._id } : "skip"
-  );
+  const players = useQuery(api.players.list, room?._id ? { roomId: room._id } : "skip");
   const joinRoom = useMutation(api.rooms.join);
 
   const isPlayer = players?.some((p) => p.userId === sessionId) ?? false;
@@ -55,7 +51,8 @@ export default function RoomPage({
   useHeartbeat({ roomId: room?._id, userId: sessionId });
 
   // auto-join if the user has a profile but isn't a player yet
-  const shouldAutoJoin = ready && hasProfile && !isPlayer && !joining && !joinError && room?.state === "waiting";
+  const shouldAutoJoin =
+    ready && hasProfile && !isPlayer && !joining && !joinError && room?.state === "waiting";
   useEffect(() => {
     if (shouldAutoJoin) {
       doJoin();
@@ -77,9 +74,7 @@ export default function RoomPage({
     return (
       <div className={styles.loading}>
         <h2 className={styles.errorTitle}>room not found</h2>
-        <p className={styles.errorText}>
-          this room doesn&apos;t exist or has been closed.
-        </p>
+        <p className={styles.errorText}>this room doesn&apos;t exist or has been closed.</p>
         <Link href="/" className={styles.homeLink}>
           back to home
         </Link>
@@ -91,9 +86,7 @@ export default function RoomPage({
     return (
       <div className={styles.loading}>
         <h2 className={styles.errorTitle}>room closed</h2>
-        <p className={styles.errorText}>
-          this room has been closed by the host.
-        </p>
+        <p className={styles.errorText}>this room has been closed by the host.</p>
         <Link href="/" className={styles.homeLink}>
           back to home
         </Link>
@@ -107,9 +100,7 @@ export default function RoomPage({
       return (
         <div className={styles.loading}>
           <h2 className={styles.errorTitle}>can&apos;t join</h2>
-          <p className={styles.errorText}>
-            this game is already in progress.
-          </p>
+          <p className={styles.errorText}>this game is already in progress.</p>
           <Link href="/" className={styles.homeLink}>
             back to home
           </Link>
@@ -153,13 +144,15 @@ export default function RoomPage({
               userId: sessionId,
               displayName: name,
               avatar: av,
-            }).then((result) => {
-              if (result && "error" in result) {
-                setJoinError(result.error as string);
-              }
-            }).catch(() => {
-              setJoinError("something went wrong. try again.");
-            });
+            })
+              .then((result) => {
+                if (result && "error" in result) {
+                  setJoinError(result.error as string);
+                }
+              })
+              .catch(() => {
+                setJoinError("something went wrong. try again.");
+              });
             setJoining(true);
           }}
           onAvatarChange={setAvatar}
@@ -170,13 +163,7 @@ export default function RoomPage({
   }
 
   if (room.state === "preparing") {
-    return (
-      <PreparingScreen
-        room={room}
-        isHost={room.hostId === sessionId}
-        sessionId={sessionId}
-      />
-    );
+    return <PreparingScreen room={room} isHost={room.hostId === sessionId} sessionId={sessionId} />;
   }
 
   if (room.state === "waiting") {

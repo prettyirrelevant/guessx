@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+
 import { mutation, query } from "./_generated/server";
 
 export const get = query({
@@ -10,7 +11,7 @@ export const get = query({
     const round = await ctx.db
       .query("rounds")
       .withIndex("by_roomId_roundNumber", (q) =>
-        q.eq("roomId", args.roomId).eq("roundNumber", args.roundNumber)
+        q.eq("roomId", args.roomId).eq("roundNumber", args.roundNumber),
       )
       .unique();
 
@@ -82,7 +83,7 @@ export const submitAnswer = mutation({
     const existing = await ctx.db
       .query("answers")
       .withIndex("by_roundId_playerId", (q) =>
-        q.eq("roundId", args.roundId).eq("playerId", args.playerId)
+        q.eq("roundId", args.roundId).eq("playerId", args.playerId),
       )
       .unique();
 

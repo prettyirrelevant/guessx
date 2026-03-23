@@ -1,6 +1,7 @@
 "use client";
 
 import { Github } from "lucide-react";
+
 import styles from "./footer.module.css";
 
 export function Footer() {

@@ -1,24 +1,22 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import Image from "next/image";
 import { useQuery, useMutation } from "convex/react";
 import { useTimeout } from "@mantine/hooks";
-import { api } from "../../convex/_generated/api";
-import { Doc, Id } from "../../convex/_generated/dataModel";
-import Image from "next/image";
+
+import { Doc, Id } from "@convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+
 import { getAvatarUrl } from "@/lib/session";
+
 import { TimerBar } from "./timer-bar";
-import { AudioPlayer } from "./audio-player";
 import { RevealScreen } from "./reveal-screen";
+import { AudioPlayer } from "./audio-player";
+
 import styles from "./game-screen.module.css";
 
-export function GameScreen({
-  room,
-  sessionId,
-}: {
-  room: Doc<"rooms">;
-  sessionId: string;
-}) {
+export function GameScreen({ room, sessionId }: { room: Doc<"rooms">; sessionId: string }) {
   const round = useQuery(api.rounds.get, {
     roomId: room._id,
     roundNumber: room.currentRound,
@@ -46,15 +44,7 @@ export function GameScreen({
     );
   }
 
-  return (
-    <ActiveRound
-      room={room}
-      round={round}
-      players={players}
-      currentPlayer={currentPlayer}
-      sessionId={sessionId}
-    />
-  );
+  return <ActiveRound room={room} round={round} players={players} currentPlayer={currentPlayer} />;
 }
 
 function ActiveRound({
@@ -62,7 +52,6 @@ function ActiveRound({
   round,
   players,
   currentPlayer,
-  sessionId,
 }: {
   room: Doc<"rooms">;
   round: {
@@ -79,7 +68,6 @@ function ActiveRound({
   };
   players: Doc<"players">[];
   currentPlayer: Doc<"players">;
-  sessionId: string;
 }) {
   const answers = useQuery(api.rounds.answers, { roundId: round._id });
   const submitAnswer = useMutation(api.rounds.submitAnswer);
@@ -89,7 +77,10 @@ function ActiveRound({
   const lockedRef = useRef(false);
   const [showFinalIntro, setShowFinalIntro] = useState(round.isFinal);
 
-  const finalIntroTimeout = useTimeout(() => setShowFinalIntro(false), 3000);
+  const { start: startFinalIntro, clear: clearFinalIntro } = useTimeout(
+    () => setShowFinalIntro(false),
+    3000,
+  );
 
   // reset state on new round
   useEffect(() => {
@@ -98,10 +89,10 @@ function ActiveRound({
     lockedRef.current = false;
     if (round.isFinal) {
       setShowFinalIntro(true);
-      finalIntroTimeout.start();
+      startFinalIntro();
     }
-    return finalIntroTimeout.clear;
-  }, [round._id, round.isFinal]);
+    return clearFinalIntro;
+  }, [round._id, round.isFinal, startFinalIntro, clearFinalIntro]);
 
   const handleSelect = useCallback(
     async (option: string) => {
@@ -117,7 +108,7 @@ function ActiveRound({
         selectedOption: option,
       });
     },
-    [round._id, currentPlayer._id, submitAnswer]
+    [round._id, currentPlayer._id, submitAnswer],
   );
 
   const connectedPlayers = useMemo(
@@ -191,9 +182,7 @@ function ActiveRound({
             onClick={() => handleSelect(option)}
             disabled={locked}
           >
-            <span className={styles.optionKey}>
-              {String.fromCharCode(65 + i)}
-            </span>
+            <span className={styles.optionKey}>{String.fromCharCode(65 + i)}</span>
             <span className={styles.optionText}>{option}</span>
           </button>
         ))}
@@ -217,9 +206,7 @@ function ActiveRound({
               />
             ))}
             {connectedPlayers.length > 8 && (
-              <span className={styles.avatarOverflow}>
-                +{connectedPlayers.length - 8}
-              </span>
+              <span className={styles.avatarOverflow}>+{connectedPlayers.length - 8}</span>
             )}
           </div>
           <span className={styles.answeredText}>
@@ -227,9 +214,7 @@ function ActiveRound({
           </span>
         </div>
         {currentPlayer.streak >= 3 && (
-          <span className={styles.streakBadge}>
-            🔥 {currentPlayer.streak} streak
-          </span>
+          <span className={styles.streakBadge}>🔥 {currentPlayer.streak} streak</span>
         )}
       </div>
     </div>
