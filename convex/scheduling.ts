@@ -52,9 +52,7 @@ export const endRound = internalMutation({
     const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);
     const leaderPosition = new Map(sorted.map((p, i) => [p._id, i]));
 
-    const correct = answers
-      .filter((a) => a.correct)
-      .sort((a, b) => a.submittedAt - b.submittedAt);
+    const correct = answers.filter((a) => a.correct).sort((a, b) => a.submittedAt - b.submittedAt);
 
     const wrong = answers.filter((a) => !a.correct);
     const answeredIds = new Set(answers.map((a) => a.playerId));

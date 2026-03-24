@@ -14,12 +14,13 @@ function generateRoomCode(): string {
 export const create = mutation({
   args: {
     hostId: v.string(),
-    mode: v.union(v.literal("music"), v.literal("place")),
+    mode: v.union(v.literal("music"), v.literal("place"), v.literal("actor")),
     maxPlayers: v.number(),
     totalRounds: v.number(),
     roundDuration: v.number(),
     artist: v.optional(v.string()),
     country: v.optional(v.string()),
+    actorCategory: v.optional(v.string()),
     hostName: v.string(),
     hostAvatar: v.string(),
   },
@@ -38,6 +39,7 @@ export const create = mutation({
       currentRound: 0,
       artist: args.artist,
       country: args.country,
+      actorCategory: args.actorCategory,
       prepStartedAt: now,
       lastActivityAt: now,
     });

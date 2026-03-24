@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Search, X } from "lucide-react";
+import { Check, Search, X } from "lucide-react";
 import { useMutation } from "convex/react";
 import { useDebouncedValue } from "@mantine/hooks";
 
@@ -12,6 +12,7 @@ import { api } from "@convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { COUNTRIES } from "@/lib/countries";
 import { POPULAR_ARTISTS } from "@/lib/artists";
+import { ACTOR_CATEGORIES } from "@/lib/actor-categories";
 import { searchArtists } from "@/lib/actions";
 import { ProfileSetup } from "@/components/profile-setup";
 
@@ -37,7 +38,7 @@ export default function Home() {
         <p className={styles.tagline}>
           challenge your friends in real-time.
           <br />
-          guess the song or spot the landmark. fastest finger wins.
+          guess the song, spot the landmark, or name the actor. fastest finger wins.
         </p>
 
         {hasProfile && (
@@ -105,7 +106,7 @@ function CreateRoomModal({
   const router = useRouter();
   const createRoom = useMutation(api.rooms.create);
 
-  const [mode, setMode] = useState<"music" | "place">("music");
+  const [mode, setMode] = useState<"music" | "place" | "actor">("music");
   const [maxPlayers, setMaxPlayers] = useState(6);
   const [totalRounds, setTotalRounds] = useState(5);
   const [roundDuration, setRoundDuration] = useState(20_000);
@@ -117,10 +118,11 @@ function CreateRoomModal({
     } catch {}
     return COUNTRIES[0].code;
   });
+  const [actorCategory, setActorCategory] = useState(ACTOR_CATEGORIES[0].code);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [selectedArtist, setSelectedArtist] = useState<{ id: number; name: string } | null>(null);
+  const [selectedArtists, setSelectedArtists] = useState<{ id: number; name: string }[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [artistQuery, setArtistQuery] = useState("");
   const [artistResults, setArtistResults] = useState<
@@ -128,6 +130,18 @@ function CreateRoomModal({
   >([]);
   const [searching, setSearching] = useState(false);
   const [debouncedQuery] = useDebouncedValue(artistQuery, 300);
+
+  const MAX_ARTISTS = 3;
+  const isFull = selectedArtists.length >= MAX_ARTISTS;
+  const selectedIds = new Set(selectedArtists.map((a) => a.id));
+
+  const toggleArtist = (artist: { id: number; name: string }) => {
+    if (selectedIds.has(artist.id)) {
+      setSelectedArtists((prev) => prev.filter((a) => a.id !== artist.id));
+    } else if (!isFull) {
+      setSelectedArtists((prev) => [...prev, artist]);
+    }
+  };
 
   useEffect(() => {
     if (!debouncedQuery.trim()) {
@@ -155,8 +169,13 @@ function CreateRoomModal({
   }, [debouncedQuery]);
 
   const handleSubmit = async () => {
-    if (mode === "music" && !selectedArtist) {
-      setError("pick an artist first");
+    if (mode === "music" && selectedArtists.length === 0) {
+      setError("pick at least one artist");
+      return;
+    }
+
+    if (mode === "actor" && !actorCategory) {
+      setError("pick an industry");
       return;
     }
 
@@ -170,8 +189,9 @@ function CreateRoomModal({
         maxPlayers,
         totalRounds,
         roundDuration,
-        artist: mode === "music" ? selectedArtist!.id.toString() : undefined,
+        artist: mode === "music" ? selectedArtists.map((a) => a.id).join(",") : undefined,
         country: mode === "place" ? country : undefined,
+        actorCategory: mode === "actor" ? actorCategory : undefined,
         hostName: displayName,
         hostAvatar: avatar,
       });
@@ -212,33 +232,52 @@ function CreateRoomModal({
               <div className={styles.modeBtnIcon}>🌍</div>
               <div className={styles.modeBtnLabel}>spot the landmark</div>
             </button>
+            <button
+              className={`${styles.modeBtn} ${mode === "actor" ? styles.active : ""}`}
+              onClick={() => setMode("actor")}
+              type="button"
+            >
+              <div className={styles.modeBtnIcon}>🎬</div>
+              <div className={styles.modeBtnLabel}>guess the actor</div>
+            </button>
           </div>
         </div>
 
         {mode === "music" && (
           <div className={styles.formGroup}>
-            <label className={styles.formLabel}>artist</label>
+            <label className={styles.formLabel}>
+              artists{" "}
+              <span className={styles.formLabelCount}>
+                ({selectedArtists.length}/{MAX_ARTISTS})
+              </span>
+            </label>
 
-            {selectedArtist ? (
-              <div className={styles.artistChip}>
-                <Image
-                  src={`https://api.deezer.com/artist/${selectedArtist.id}/image?size=small`}
-                  alt={selectedArtist.name}
-                  className={styles.artistChipImg}
-                  width={28}
-                  height={28}
-                  unoptimized
-                />
-                <span>{selectedArtist.name}</span>
-                <button
-                  className={styles.artistChipRemove}
-                  onClick={() => setSelectedArtist(null)}
-                  type="button"
-                >
-                  <X size={14} />
-                </button>
+            {selectedArtists.length > 0 && (
+              <div className={styles.artistChips}>
+                {selectedArtists.map((a) => (
+                  <div key={a.id} className={styles.artistChip}>
+                    <Image
+                      src={`https://api.deezer.com/artist/${a.id}/image?size=small`}
+                      alt={a.name}
+                      className={styles.artistChipImg}
+                      width={22}
+                      height={22}
+                      unoptimized
+                    />
+                    <span>{a.name}</span>
+                    <button
+                      className={styles.artistChipRemove}
+                      onClick={() => toggleArtist(a)}
+                      type="button"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ) : showSearch ? (
+            )}
+
+            {showSearch ? (
               <div className={styles.artistSearchWrap}>
                 <div className={styles.artistSearchRow}>
                   <input
@@ -269,53 +308,57 @@ function CreateRoomModal({
 
                 {artistResults.length > 0 && (
                   <div className={styles.searchResults}>
-                    {artistResults.map((a) => (
-                      <button
-                        key={a.id}
-                        className={styles.searchResultItem}
-                        onClick={() => {
-                          setSelectedArtist({ id: a.id, name: a.name });
-                          setShowSearch(false);
-                          setArtistQuery("");
-                          setArtistResults([]);
-                        }}
-                        type="button"
-                      >
-                        <Image
-                          src={a.picture_small}
-                          alt={a.name}
-                          className={styles.artistImg}
-                          width={32}
-                          height={32}
-                          unoptimized
-                        />
-                        <span>{a.name}</span>
-                      </button>
-                    ))}
+                    {artistResults.map((a) => {
+                      const isSelected = selectedIds.has(a.id);
+                      return (
+                        <button
+                          key={a.id}
+                          className={`${styles.searchResultItem} ${isSelected ? styles.searchResultSelected : ""}`}
+                          onClick={() => toggleArtist({ id: a.id, name: a.name })}
+                          disabled={isFull && !isSelected}
+                          type="button"
+                        >
+                          <Image
+                            src={a.picture_small}
+                            alt={a.name}
+                            className={styles.artistImg}
+                            width={32}
+                            height={32}
+                            unoptimized
+                          />
+                          <span>{a.name}</span>
+                          {isSelected && <Check size={14} className={styles.checkIcon} />}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             ) : (
               <>
                 <div className={styles.artistGrid}>
-                  {POPULAR_ARTISTS.map((a) => (
-                    <button
-                      key={a.id}
-                      className={styles.artistGridItem}
-                      onClick={() => setSelectedArtist(a)}
-                      type="button"
-                    >
-                      <Image
-                        src={`https://api.deezer.com/artist/${a.id}/image?size=small`}
-                        alt={a.name}
-                        className={styles.artistImg}
-                        width={44}
-                        height={44}
-                        unoptimized
-                      />
-                      <span className={styles.artistName}>{a.name}</span>
-                    </button>
-                  ))}
+                  {POPULAR_ARTISTS.map((a) => {
+                    const isSelected = selectedIds.has(a.id);
+                    return (
+                      <button
+                        key={a.id}
+                        className={`${styles.artistGridItem} ${isSelected ? styles.artistGridItemSelected : ""}`}
+                        onClick={() => toggleArtist(a)}
+                        disabled={isFull && !isSelected}
+                        type="button"
+                      >
+                        <Image
+                          src={`https://api.deezer.com/artist/${a.id}/image?size=small`}
+                          alt={a.name}
+                          className={styles.artistImg}
+                          width={44}
+                          height={44}
+                          unoptimized
+                        />
+                        <span className={styles.artistName}>{a.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <button
@@ -340,6 +383,23 @@ function CreateRoomModal({
               onChange={(e) => setCountry(e.target.value)}
             >
               {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {mode === "actor" && (
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>industry</label>
+            <select
+              className={styles.formSelect}
+              value={actorCategory}
+              onChange={(e) => setActorCategory(e.target.value)}
+            >
+              {ACTOR_CATEGORIES.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.name}
                 </option>

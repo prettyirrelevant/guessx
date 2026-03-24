@@ -282,38 +282,74 @@
   color: var(--accent2);
 }
 
+.formLabelCount {
+  color: var(--accent);
+  font-size: 10px;
+}
+
+.artistChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
 .artistChip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
   background: var(--surface2);
   border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   font-family: var(--font-dm-mono), monospace;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text);
 }
 
 .artistChipImg {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   object-fit: cover;
   background: var(--border);
 }
 
 .artistChipRemove {
-  margin-left: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--muted);
   transition: color var(--transition-fast);
+  margin-left: 2px;
 }
 
 .artistChipRemove:hover {
   color: var(--accent3);
+}
+
+.artistGridItemSelected {
+  border-color: var(--accent);
+  background: rgba(200, 241, 53, 0.08);
+}
+
+.artistGridItem:disabled:not(.artistGridItemSelected) {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.searchResultSelected {
+  background: rgba(200, 241, 53, 0.08);
+}
+
+.searchResultItem:disabled:not(.searchResultSelected) {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.checkIcon {
+  margin-left: auto;
+  color: var(--accent);
 }
 
 .artistSearchWrap {

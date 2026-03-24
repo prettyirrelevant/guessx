@@ -8,13 +8,14 @@ import { useClipboard, useWindowEvent } from "@mantine/hooks";
 import { Doc } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 
-import { prepareMusicContent, preparePlaceContent } from "@/lib/actions";
+import { prepareMusicContent, preparePlaceContent, prepareActorContent } from "@/lib/actions";
 
 import styles from "./preparing-screen.module.css";
 
-const STEPS = {
+const STEPS: Record<string, string[]> = {
   music: ["setting up your room", "choosing your tracks", "preparing the choices"],
   place: ["setting up your room", "picking your locations", "preparing the choices"],
+  actor: ["setting up your room", "finding your actors", "preparing the choices"],
 };
 
 export function PreparingScreen({
@@ -42,10 +43,14 @@ export function PreparingScreen({
 
       setCurrentStep(1);
 
-      const content =
-        room.mode === "music"
-          ? await prepareMusicContent(room.artist ?? "3933641", room.totalRounds)
-          : await preparePlaceContent(room.country ?? "US", room.totalRounds);
+      let content;
+      if (room.mode === "music") {
+        content = await prepareMusicContent(room.artist ?? "3933641", room.totalRounds);
+      } else if (room.mode === "actor") {
+        content = await prepareActorContent(room.actorCategory ?? "hollywood", room.totalRounds);
+      } else {
+        content = await preparePlaceContent(room.country ?? "US", room.totalRounds);
+      }
 
       setCurrentStep(2);
       await new Promise((r) => setTimeout(r, 500));
@@ -57,7 +62,15 @@ export function PreparingScreen({
     } catch {
       setError("failed to set up the room. try again.");
     }
-  }, [room._id, room.mode, room.artist, room.country, room.totalRounds, completePreparation]);
+  }, [
+    room._id,
+    room.mode,
+    room.artist,
+    room.country,
+    room.actorCategory,
+    room.totalRounds,
+    completePreparation,
+  ]);
 
   useEffect(() => {
     if (!isHost) return;

@@ -158,16 +158,31 @@ function ActiveRound({
           </div>
         ) : (
           <div className={styles.placeSection}>
-            <p className={styles.placeHint}>where is this?</p>
-            <div className={styles.imageWrapper}>
-              <Image
-                src={round.mediaUrl}
-                alt="guess this place"
-                className={styles.placeImage}
-                fill
-                unoptimized
-              />
-            </div>
+            <p className={styles.placeHint}>
+              {room.mode === "actor" ? "who is this?" : "where is this?"}
+            </p>
+            {room.mode === "actor" ? (
+              <div className={styles.actorImageWrapper}>
+                <Image
+                  src={round.mediaUrl}
+                  alt="guess this actor"
+                  className={styles.actorImage}
+                  width={400}
+                  height={500}
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div className={styles.imageWrapper}>
+                <Image
+                  src={round.mediaUrl}
+                  alt="guess this place"
+                  className={styles.placeImage}
+                  fill
+                  unoptimized
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

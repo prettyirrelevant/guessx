@@ -126,6 +126,18 @@
   animation: subtleZoom 20s ease infinite alternate;
 }
 
+.actorImageWrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.actorImage {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
 @keyframes subtleZoom {
   from {
     transform: scale(1);
