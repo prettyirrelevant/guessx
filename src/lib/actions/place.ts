@@ -22,9 +22,9 @@ async function fetchLandmarkImage(placeName: string): Promise<string | null> {
     let res = await fetch(`https://api.openverse.org/v1/images/?${params.toString()}`);
     let data = res.ok ? await res.json() : null;
 
-    // fallback without source filter for lesser-known landmarks
+    // fallback without category filter for landmarks with poor photograph tagging
     if (!data?.results?.length) {
-      params.delete("source");
+      params.delete("category");
       res = await fetch(`https://api.openverse.org/v1/images/?${params.toString()}`);
       data = res.ok ? await res.json() : null;
     }

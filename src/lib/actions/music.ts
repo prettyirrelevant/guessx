@@ -1,6 +1,6 @@
 "use server";
 
-import { shuffle, fetchJson, buildRounds } from "./shared";
+import { shuffle, fetchJson } from "./shared";
 import type { RoundContent } from "./shared";
 
 interface Track {
@@ -31,6 +31,7 @@ export async function prepareMusicContent(
   totalRounds: number,
 ): Promise<RoundContent[]> {
   const artistIds = artistParam.split(",").map((id) => id.trim());
+  const selectedIdSet = new Set(artistIds);
 
   // fetch top tracks and related artists for all selected artists in parallel
   const perArtist = await Promise.all(
@@ -41,40 +42,48 @@ export async function prepareMusicContent(
           `https://api.deezer.com/artist/${id}/related?limit=10`,
         ),
       ]);
-      return {
-        tracks: topData.data.filter((t) => t.preview),
-        related: relatedData.data,
-      };
+
+      const related = relatedData.data.filter(
+        (r) => !selectedIdSet.has(r.id.toString()),
+      );
+
+      return { tracks: topData.data.filter((t) => t.preview), related };
     }),
   );
 
-  // group tracks per artist (shuffled), for round-robin assignment
+  // fetch distractor tracks per artist (genre-appropriate)
+  const distractorLabelsByArtist: string[][] = await Promise.all(
+    perArtist.map(async ({ related }) => {
+      const uniqueRelated = related.filter(
+        (r, i, arr) => arr.findIndex((x) => x.id === r.id) === i,
+      );
+
+      const results = await Promise.allSettled(
+        shuffle(uniqueRelated)
+          .slice(0, 8)
+          .map((r) =>
+            fetchJson<{ data: Track[] }>(`https://api.deezer.com/artist/${r.id}/top?limit=5`),
+          ),
+      );
+
+      return [
+        ...new Set(
+          results.flatMap((r) =>
+            r.status === "fulfilled" ? r.value.data.map((t) => t.title) : [],
+          ),
+        ),
+      ];
+    }),
+  );
+
+  // exclude selected artist track titles from distractors
   const tracksByArtist = perArtist.map((a) => shuffle(a.tracks));
-
-  // deduplicated related artists for distractors (exclude selected artists)
-  const selectedIdSet = new Set(artistIds);
-  const allRelated = perArtist
-    .flatMap((a) => a.related)
-    .filter(
-      (r, i, arr) =>
-        !selectedIdSet.has(r.id.toString()) && arr.findIndex((x) => x.id === r.id) === i,
-    );
-
-  const relatedResults = await Promise.allSettled(
-    shuffle(allRelated)
-      .slice(0, 10)
-      .map((related) =>
-        fetchJson<{ data: Track[] }>(`https://api.deezer.com/artist/${related.id}/top?limit=5`),
-      ),
-  );
-  const distractorTracks: Track[] = relatedResults.flatMap((r) =>
-    r.status === "fulfilled" ? r.value.data.filter((t) => t.preview) : [],
-  );
-
   const allArtistLabels = new Set(tracksByArtist.flat().map((t) => t.title));
-  const distractorLabels = [...new Set(distractorTracks.map((t) => t.title))].filter(
-    (l) => !allArtistLabels.has(l),
-  );
+  for (let i = 0; i < distractorLabelsByArtist.length; i++) {
+    distractorLabelsByArtist[i] = distractorLabelsByArtist[i].filter(
+      (l) => !allArtistLabels.has(l),
+    );
+  }
 
   // round-robin across artists to build candidate list
   const candidates: {
@@ -82,6 +91,7 @@ export async function prepareMusicContent(
     mediaUrl: string;
     mediaTitle: string;
     mediaArtist: string;
+    artistIndex: number;
   }[] = [];
   const cursors = tracksByArtist.map(() => 0);
   const seen = new Set<string>();
@@ -100,6 +110,7 @@ export async function prepareMusicContent(
           mediaUrl: track.preview!,
           mediaTitle: track.title,
           mediaArtist: track.artist.name,
+          artistIndex: a,
         });
         addedThisPass = true;
         break;
@@ -109,11 +120,32 @@ export async function prepareMusicContent(
     if (!addedThisPass) break;
   }
 
-  const rounds = buildRounds({
-    candidates,
-    distractorNames: distractorLabels,
-    totalRounds,
-  });
+  // build rounds using per-artist distractors for genre consistency
+  const usedAnswers = new Set<string>();
+  const rounds: RoundContent[] = [];
+
+  for (const candidate of candidates) {
+    if (rounds.length >= totalRounds) break;
+    if (usedAnswers.has(candidate.answer)) continue;
+
+    const pool = distractorLabelsByArtist[candidate.artistIndex];
+    const distractors = shuffle(
+      pool.filter((d) => d !== candidate.answer && !usedAnswers.has(d)),
+    ).slice(0, 3);
+
+    if (distractors.length < 3) continue;
+
+    usedAnswers.add(candidate.answer);
+    rounds.push({
+      roundNumber: rounds.length + 1,
+      correctAnswer: candidate.answer,
+      options: shuffle([candidate.answer, ...distractors]),
+      mediaUrl: candidate.mediaUrl,
+      mediaTitle: candidate.mediaTitle,
+      mediaArtist: candidate.mediaArtist,
+      isFinal: rounds.length === totalRounds - 1,
+    });
+  }
 
   if (rounds.length === 0) {
     throw new Error("could not fetch enough tracks for the selected artists");
