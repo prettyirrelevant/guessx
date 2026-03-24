@@ -2,23 +2,38 @@
 
 import { LANDMARKS } from "@/lib/landmarks";
 
-import type { RoundContent } from "./shared";
 import { shuffle, buildRounds } from "./shared";
+import type { RoundContent } from "./shared";
 
 async function fetchLandmarkImage(placeName: string): Promise<string | null> {
   const params = new URLSearchParams({
     q: placeName,
     license_type: "all",
-    page_size: "1",
+    page_size: "5",
     extension: "jpg",
+    category: "photograph",
+    size: "large",
+    source: "wikimedia",
+    aspect_ratio: "wide",
+    mature: "false",
   });
 
   try {
-    const res = await fetch(`https://api.openverse.org/v1/images/?${params.toString()}`);
-    if (!res.ok) return null;
+    let res = await fetch(`https://api.openverse.org/v1/images/?${params.toString()}`);
+    let data = res.ok ? await res.json() : null;
 
-    const data = await res.json();
-    return data.results?.[0]?.url ?? null;
+    // fallback without source filter for lesser-known landmarks
+    if (!data?.results?.length) {
+      params.delete("source");
+      res = await fetch(`https://api.openverse.org/v1/images/?${params.toString()}`);
+      data = res.ok ? await res.json() : null;
+    }
+
+    if (!data?.results?.length) return null;
+
+    // pick a random result for variety across games
+    const idx = Math.floor(Math.random() * data.results.length);
+    return data.results[idx]?.url ?? null;
   } catch {
     return null;
   }
