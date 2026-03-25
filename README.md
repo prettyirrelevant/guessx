@@ -7,7 +7,7 @@
 
 real-time multiplayer guessing game. challenge your friends to guess the song, spot the landmark, or name the actor. fastest finger wins.
 
-**[play now](https://guessx.enio.la)**
+**[play now](https://guessx.enio.la?utm_source=github&utm_medium=readme)**
 
 ## game modes
 

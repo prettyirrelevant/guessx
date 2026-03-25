@@ -7,7 +7,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -30,7 +30,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    needs: [quality]
+    needs: [lint]
     steps:
       - name: checkout
         uses: actions/checkout@v6
