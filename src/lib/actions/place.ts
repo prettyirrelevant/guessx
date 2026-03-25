@@ -2,8 +2,7 @@
 
 import { LANDMARKS } from "@/lib/landmarks";
 
-import { shuffle, buildRounds } from "./shared";
-import type { RoundContent } from "./shared";
+import { shuffle, buildRounds, type RoundContent } from "./shared";
 
 async function fetchLandmarkImage(placeName: string): Promise<string | null> {
   const params = new URLSearchParams({

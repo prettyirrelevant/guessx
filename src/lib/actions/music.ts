@@ -1,7 +1,6 @@
 "use server";
 
-import { shuffle, fetchJson } from "./shared";
-import type { RoundContent } from "./shared";
+import { shuffle, fetchJson, type RoundContent } from "./shared";
 
 interface Track {
   id: number;
@@ -43,9 +42,7 @@ export async function prepareMusicContent(
         ),
       ]);
 
-      const related = relatedData.data.filter(
-        (r) => !selectedIdSet.has(r.id.toString()),
-      );
+      const related = relatedData.data.filter((r) => !selectedIdSet.has(r.id.toString()));
 
       return { tracks: topData.data.filter((t) => t.preview), related };
     }),

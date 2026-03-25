@@ -1,5 +1,10 @@
 # guessx
 
+[![ci](https://img.shields.io/github/actions/workflow/status/prettyirrelevant/guessx/ci.yml?style=for-the-badge&label=ci)](https://github.com/prettyirrelevant/guessx/actions/workflows/ci.yml)
+[![license](https://img.shields.io/github/license/prettyirrelevant/guessx?style=for-the-badge)](LICENSE)
+[![next.js](https://img.shields.io/badge/next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
+[![convex](https://img.shields.io/badge/convex-realtime-f3694c?style=for-the-badge)](https://convex.dev)
+
 real-time multiplayer guessing game. challenge your friends to guess the song, spot the landmark, or name the actor. fastest finger wins.
 
 **[play now](https://guessx.enio.la)**

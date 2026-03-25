@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "oxlint .",
     "fmt": "oxfmt --write .",
-    "fmt:check": "oxfmt --check ."
+    "fmt:check": "oxfmt --check .",
+    "test": "vitest run --config convex/vitest.config.mts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@mantine/hooks": "^8.3.18",
@@ -20,11 +22,18 @@
     "react-dom": "^19"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "convex-test": "^0.0.44",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
-    "typescript": "^5"
-  }
+    "typescript": "^5",
+    "vitest": "^4.1.1"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.7.1"
 }
