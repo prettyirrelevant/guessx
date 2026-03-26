@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import { endRoundHandler, endRevealHandler } from "./scheduling";
 import { mutation, query } from "./_generated/server";
 
 export const get = query({
@@ -97,6 +98,43 @@ export const submitAnswer = mutation({
       submittedAt: now,
       pointsAwarded: 0,
     });
+
+    // check if all connected players have answered to end round early
+    const players = await ctx.db
+      .query("players")
+      .withIndex("by_roomId", (q) => q.eq("roomId", round.roomId))
+      .collect();
+
+    const connectedCount = players.filter((p) => p.status === "connected").length;
+    if (connectedCount > 0) {
+      const answerCount = await ctx.db
+        .query("answers")
+        .withIndex("by_roundId", (q) => q.eq("roundId", args.roundId))
+        .collect();
+
+      if (answerCount.length >= connectedCount) {
+        await endRoundHandler(ctx, args.roundId);
+      }
+    }
+
+    return { success: true };
+  },
+});
+
+export const skipReveal = mutation({
+  args: {
+    roundId: v.id("rounds"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const round = await ctx.db.get(args.roundId);
+    if (!round || round.state !== "revealing") return { error: "round not revealing" };
+
+    const room = await ctx.db.get(round.roomId);
+    if (!room) return { error: "room not found" };
+    if (room.hostId !== args.userId) return { error: "only the host can skip" };
+
+    await endRevealHandler(ctx, args.roundId);
 
     return { success: true };
   },

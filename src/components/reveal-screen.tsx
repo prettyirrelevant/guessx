@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Check, X } from "lucide-react";
-import { useQuery } from "convex/react";
-import { useInterval } from "@mantine/hooks";
+import { useQuery, useMutation } from "convex/react";
+import { useInterval, useTimeout } from "@mantine/hooks";
 
 import { Doc } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
@@ -25,22 +25,46 @@ export function RevealScreen({
   currentPlayer: Doc<"players">;
 }) {
   const answers = useQuery(api.rounds.answers, { roundId: round._id });
+  const skipReveal = useMutation(api.rounds.skipReveal);
   const [countdown, setCountdown] = useState(10);
+  const [showSkip, setShowSkip] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const isHost = currentPlayer.userId === room.hostId;
 
   const { start: startCountdown, stop: stopCountdown } = useInterval(
     () => setCountdown((prev) => (prev > 0 ? prev - 1 : 0)),
     1000,
   );
 
+  const { start: startSkipDelay, clear: clearSkipDelay } = useTimeout(
+    () => setShowSkip(true),
+    3000,
+  );
+
   useEffect(() => {
     if (round.state !== "revealing") {
       stopCountdown();
+      setShowSkip(false);
+      setSkipping(false);
+      clearSkipDelay();
       return;
     }
     setCountdown(10);
     startCountdown();
-    return stopCountdown;
-  }, [round._id, round.state, startCountdown, stopCountdown]);
+    if (isHost) startSkipDelay();
+    return () => {
+      stopCountdown();
+      clearSkipDelay();
+    };
+  }, [
+    round._id,
+    round.state,
+    isHost,
+    startCountdown,
+    stopCountdown,
+    startSkipDelay,
+    clearSkipDelay,
+  ]);
 
   if (!answers || !("selectedOption" in (answers[0] ?? {}))) {
     return (
@@ -89,11 +113,25 @@ export function RevealScreen({
           round {round.roundNumber}/{room.totalRounds}
         </span>
         <span className={styles.revealLabel}>
-          {round.state === "revealing"
-            ? round.isFinal
-              ? `final results in ${countdown}s`
-              : `next round in ${countdown}s`
-            : "results"}
+          {round.state === "revealing" ? (
+            <>
+              {round.isFinal ? `final results in ${countdown}s` : `next round in ${countdown}s`}
+              {isHost && showSkip && (
+                <button
+                  className={styles.skipBtn}
+                  disabled={skipping}
+                  onClick={() => {
+                    setSkipping(true);
+                    skipReveal({ roundId: round._id, userId: currentPlayer.userId });
+                  }}
+                >
+                  continue
+                </button>
+              )}
+            </>
+          ) : (
+            "results"
+          )}
         </span>
       </div>
 

@@ -1,18 +1,26 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 
 import { Doc } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 
-import { getAvatarUrl } from "@/lib/session";
+import { getAvatarUrl, useSession } from "@/lib/session";
 
 import styles from "./results-screen.module.css";
 
 export function ResultsScreen({ room, sessionId }: { room: Doc<"rooms">; sessionId: string }) {
   const leaderboard = useQuery(api.players.leaderboard, { roomId: room._id });
+  const nextRoomCode = useQuery(api.rooms.nextRoom, { roomId: room._id });
+  const playAgain = useMutation(api.rooms.playAgain);
+  const router = useRouter();
+  const { displayName, avatar } = useSession();
+  const [starting, setStarting] = useState(false);
+  const isHost = room.hostId === sessionId;
 
   if (!leaderboard) {
     return (
@@ -86,8 +94,41 @@ export function ResultsScreen({ room, sessionId }: { room: Doc<"rooms">; session
         </div>
 
         <div className={styles.actions}>
-          <Link href="/" className={styles.homeBtn}>
-            play again
+          {isHost ? (
+            <button
+              className={styles.playAgainBtn}
+              disabled={starting}
+              onClick={async () => {
+                setStarting(true);
+                const result = await playAgain({
+                  roomId: room._id,
+                  userId: sessionId,
+                  hostName: displayName,
+                  hostAvatar: avatar,
+                });
+                if (result && "roomCode" in result) {
+                  router.push(`/room/${result.roomCode}`);
+                } else {
+                  setStarting(false);
+                }
+              }}
+            >
+              {starting ? "setting up..." : "play again"}
+            </button>
+          ) : nextRoomCode ? (
+            <Link href={`/room/${nextRoomCode}`} className={styles.playAgainBtn}>
+              play again
+            </Link>
+          ) : (
+            <div className={styles.waitingGroup}>
+              <button className={styles.playAgainBtn} disabled>
+                play again
+              </button>
+              <span className={styles.waitingHint}>waiting for host to start a new game</span>
+            </div>
+          )}
+          <Link href="/" className={styles.homeLink}>
+            back to home
           </Link>
         </div>
       </div>

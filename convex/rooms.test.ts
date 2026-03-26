@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { convexTest } from "convex-test";
+import { convexTest, type TestConvex } from "convex-test";
 
 import schema from "./schema";
 import { api, internal } from "./_generated/api";
 
 const modules = import.meta.glob("./**/*.ts");
+
+type Ctx = TestConvex<typeof schema>;
 
 function makeHost(overrides?: Record<string, unknown>) {
   return {
@@ -29,10 +31,7 @@ function makeRounds(count: number) {
   }));
 }
 
-async function createWaitingRoom(
-  t: ReturnType<typeof convexTest>,
-  overrides?: Record<string, unknown>,
-) {
+async function createWaitingRoom(t: Ctx, overrides?: Record<string, unknown>) {
   const host = makeHost(overrides);
   const { roomId, roomCode } = await t.mutation(api.rooms.create, host);
   await t.mutation(api.rooms.completePreparation, {
@@ -42,7 +41,7 @@ async function createWaitingRoom(
   return { roomId, roomCode };
 }
 
-async function addPlayer(t: ReturnType<typeof convexTest>, roomCode: string, userId: string) {
+async function addPlayer(t: Ctx, roomCode: string, userId: string) {
   return t.mutation(api.rooms.join, {
     roomCode,
     userId,
@@ -425,5 +424,134 @@ describe("finished room cleanup", () => {
 
     const room = await t.query(api.rooms.getById, { roomId });
     expect(room?.state).toBe("abandoned");
+  });
+});
+
+describe("play again", () => {
+  it("host can create a new room from a finished game", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId } = await createWaitingRoom(t, { artist: "123" });
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(roomId, { state: "finished" });
+    });
+
+    const result = await t.mutation(api.rooms.playAgain, {
+      roomId,
+      userId: "user-host",
+      hostName: "Host",
+      hostAvatar: "avatar-1",
+    });
+
+    expect(result).toHaveProperty("roomCode");
+    expect(result).toHaveProperty("roomId");
+
+    const newRoom = await t.query(api.rooms.get, { roomCode: result.roomCode! });
+    expect(newRoom?.state).toBe("preparing");
+    expect(newRoom?.mode).toBe("music");
+    expect(newRoom?.maxPlayers).toBe(4);
+    expect(newRoom?.totalRounds).toBe(3);
+    expect(newRoom?.roundDuration).toBe(15_000);
+    expect(newRoom?.artist).toBe("123");
+
+    // host is first player in new room
+    const players = await t.query(api.players.list, { roomId: newRoom!._id });
+    expect(players).toHaveLength(1);
+    expect(players[0].userId).toBe("user-host");
+
+    // old room has nextRoomId set
+    const oldRoom = await t.query(api.rooms.getById, { roomId });
+    expect(oldRoom?.nextRoomId).toBe(result.roomCode);
+  });
+
+  it("non-host cannot trigger play again", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId } = await createWaitingRoom(t);
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(roomId, { state: "finished" });
+    });
+
+    const result = await t.mutation(api.rooms.playAgain, {
+      roomId,
+      userId: "user-random",
+      hostName: "Random",
+      hostAvatar: "avatar-x",
+    });
+
+    expect(result).toEqual({ error: "only the host can restart" });
+  });
+
+  it("play again is idempotent", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId } = await createWaitingRoom(t);
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(roomId, { state: "finished" });
+    });
+
+    const first = await t.mutation(api.rooms.playAgain, {
+      roomId,
+      userId: "user-host",
+      hostName: "Host",
+      hostAvatar: "avatar-1",
+    });
+
+    const second = await t.mutation(api.rooms.playAgain, {
+      roomId,
+      userId: "user-host",
+      hostName: "Host",
+      hostAvatar: "avatar-1",
+    });
+
+    expect(second).toEqual({ roomCode: first.roomCode });
+  });
+
+  it("rejects play again on non-finished room", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId } = await createWaitingRoom(t);
+
+    const result = await t.mutation(api.rooms.playAgain, {
+      roomId,
+      userId: "user-host",
+      hostName: "Host",
+      hostAvatar: "avatar-1",
+    });
+
+    expect(result).toEqual({ error: "game not finished" });
+  });
+
+  it("nextRoom query returns null before play again and room code after", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId } = await createWaitingRoom(t);
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(roomId, { state: "finished" });
+    });
+
+    const before = await t.query(api.rooms.nextRoom, { roomId });
+    expect(before).toBeNull();
+
+    const result = await t.mutation(api.rooms.playAgain, {
+      roomId,
+      userId: "user-host",
+      hostName: "Host",
+      hostAvatar: "avatar-1",
+    });
+
+    const after = await t.query(api.rooms.nextRoom, { roomId });
+    expect(after).toBe(result.roomCode);
+  });
+
+  it("players can join during preparing state", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId, roomCode } = await t.mutation(api.rooms.create, makeHost());
+
+    const result = await addPlayer(t, roomCode, "user-2");
+
+    expect(result).toMatchObject({ roomId, roomCode });
+
+    const players = await t.query(api.players.list, { roomId });
+    expect(players).toHaveLength(2);
   });
 });

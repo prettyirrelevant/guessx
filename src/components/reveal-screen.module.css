@@ -41,6 +41,33 @@
   color: var(--accent2);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skipBtn {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 11px;
+  color: var(--bg);
+  background: var(--accent2);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: opacity var(--transition-base);
+  animation: fadeIn 0.3s ease;
+}
+
+.skipBtn:hover {
+  opacity: 0.85;
+}
+
+.skipBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* answer banner */

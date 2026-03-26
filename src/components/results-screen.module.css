@@ -161,10 +161,13 @@
 }
 
 .actions {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
-.homeBtn {
+.playAgainBtn {
   display: inline-block;
   padding: 14px 40px;
   font-family: var(--font-syne), sans-serif;
@@ -172,14 +175,47 @@
   font-size: 15px;
   background: var(--accent);
   color: var(--bg);
+  border: none;
   border-radius: var(--radius-md);
   box-shadow: var(--glow-accent);
+  cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.homeBtn:hover {
+.playAgainBtn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 0 30px rgba(200, 241, 53, 0.4);
+}
+
+.playAgainBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.waitingGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.waitingHint {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.homeLink {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.homeLink:hover {
+  color: var(--text);
 }
 
 @media (max-width: 480px) {

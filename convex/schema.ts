@@ -22,6 +22,7 @@ export default defineSchema({
     actorCategory: v.optional(v.string()),
     prepStartedAt: v.optional(v.number()),
     lastActivityAt: v.number(),
+    nextRoomId: v.optional(v.string()),
   })
     .index("by_roomId", ["roomId"])
     .index("by_state", ["state"]),

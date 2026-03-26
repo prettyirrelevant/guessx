@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 function generateRoomCode(): string {
@@ -9,6 +9,59 @@ function generateRoomCode(): string {
   const l2 = letters[Math.floor(Math.random() * letters.length)];
   const num = Math.floor(1000 + Math.random() * 9000);
   return `${l1}${l2}-${num}`;
+}
+
+async function createRoom(
+  ctx: MutationCtx,
+  args: {
+    hostId: string;
+    mode: "music" | "place" | "actor";
+    maxPlayers: number;
+    totalRounds: number;
+    roundDuration: number;
+    artist?: string;
+    country?: string;
+    actorCategory?: string;
+    hostName: string;
+    hostAvatar: string;
+  },
+) {
+  const roomCode = generateRoomCode();
+  const now = Date.now();
+
+  const roomId = await ctx.db.insert("rooms", {
+    roomId: roomCode,
+    hostId: args.hostId,
+    state: "preparing",
+    mode: args.mode,
+    maxPlayers: args.maxPlayers,
+    totalRounds: args.totalRounds,
+    roundDuration: args.roundDuration,
+    currentRound: 0,
+    artist: args.artist,
+    country: args.country,
+    actorCategory: args.actorCategory,
+    prepStartedAt: now,
+    lastActivityAt: now,
+  });
+
+  await ctx.db.insert("players", {
+    roomId,
+    userId: args.hostId,
+    displayName: args.hostName,
+    avatar: args.hostAvatar,
+    status: "connected",
+    totalScore: 0,
+    streak: 0,
+    joinedAt: now,
+    lastSeenAt: now,
+  });
+
+  await ctx.scheduler.runAfter(60_000, internal.scheduling.abandonIfStillPreparing, {
+    roomId,
+  });
+
+  return { roomCode, roomId };
 }
 
 export const create = mutation({
@@ -25,42 +78,7 @@ export const create = mutation({
     hostAvatar: v.string(),
   },
   handler: async (ctx, args) => {
-    const roomCode = generateRoomCode();
-    const now = Date.now();
-
-    const roomId = await ctx.db.insert("rooms", {
-      roomId: roomCode,
-      hostId: args.hostId,
-      state: "preparing",
-      mode: args.mode,
-      maxPlayers: args.maxPlayers,
-      totalRounds: args.totalRounds,
-      roundDuration: args.roundDuration,
-      currentRound: 0,
-      artist: args.artist,
-      country: args.country,
-      actorCategory: args.actorCategory,
-      prepStartedAt: now,
-      lastActivityAt: now,
-    });
-
-    await ctx.db.insert("players", {
-      roomId,
-      userId: args.hostId,
-      displayName: args.hostName,
-      avatar: args.hostAvatar,
-      status: "connected",
-      totalScore: 0,
-      streak: 0,
-      joinedAt: now,
-      lastSeenAt: now,
-    });
-
-    await ctx.scheduler.runAfter(60_000, internal.scheduling.abandonIfStillPreparing, {
-      roomId,
-    });
-
-    return { roomCode, roomId };
+    return createRoom(ctx, args);
   },
 });
 
@@ -130,7 +148,9 @@ export const join = mutation({
       .unique();
 
     if (!room) return { error: "room not found" };
-    if (room.state !== "waiting") return { error: "game already in progress" };
+    if (room.state !== "waiting" && room.state !== "preparing") {
+      return { error: "game already in progress" };
+    }
 
     const players = await ctx.db
       .query("players")
@@ -212,6 +232,47 @@ export const start = mutation({
     }
 
     return { success: true };
+  },
+});
+
+export const playAgain = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.string(),
+    hostName: v.string(),
+    hostAvatar: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const oldRoom = await ctx.db.get(args.roomId);
+    if (!oldRoom) return { error: "room not found" };
+    if (oldRoom.state !== "finished") return { error: "game not finished" };
+    if (oldRoom.hostId !== args.userId) return { error: "only the host can restart" };
+    if (oldRoom.nextRoomId) return { roomCode: oldRoom.nextRoomId };
+
+    const result = await createRoom(ctx, {
+      hostId: args.userId,
+      mode: oldRoom.mode,
+      maxPlayers: oldRoom.maxPlayers,
+      totalRounds: oldRoom.totalRounds,
+      roundDuration: oldRoom.roundDuration,
+      artist: oldRoom.artist,
+      country: oldRoom.country,
+      actorCategory: oldRoom.actorCategory,
+      hostName: args.hostName,
+      hostAvatar: args.hostAvatar,
+    });
+
+    await ctx.db.patch(args.roomId, { nextRoomId: result.roomCode });
+
+    return result;
+  },
+});
+
+export const nextRoom = query({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    return room?.nextRoomId ?? null;
   },
 });
 

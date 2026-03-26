@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { convexTest } from "convex-test";
+import { convexTest, type TestConvex } from "convex-test";
 
 import schema from "./schema";
 import type { Id } from "./_generated/dataModel";
@@ -7,8 +7,10 @@ import { api, internal } from "./_generated/api";
 
 const modules = import.meta.glob("./**/*.ts");
 
+type Ctx = TestConvex<typeof schema>;
+
 async function setupGame(
-  t: ReturnType<typeof convexTest>,
+  t: Ctx,
   opts: { playerCount?: number; totalRounds?: number; roundDuration?: number } = {},
 ) {
   const { playerCount = 4, totalRounds = 3, roundDuration = 15_000 } = opts;
