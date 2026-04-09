@@ -46,23 +46,32 @@
   gap: 8px;
 }
 
-.skipBtn {
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 11px;
-  color: var(--bg);
-  background: var(--accent2);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  transition: opacity var(--transition-base);
+.skipBar {
+  position: sticky;
+  bottom: 16px;
+  margin-top: 20px;
   animation: fadeIn 0.3s ease;
 }
 
-.skipBtn:hover {
-  opacity: 0.85;
+.skipBtn {
+  width: 100%;
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--bg);
+  background: var(--accent2);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: all var(--transition-fast);
+  box-shadow: var(--glow-accent2);
+}
+
+.skipBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(91, 140, 255, 0.4);
 }
 
 .skipBtn:disabled {

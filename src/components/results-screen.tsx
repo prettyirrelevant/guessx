@@ -121,10 +121,12 @@ export function ResultsScreen({ room, sessionId }: { room: Doc<"rooms">; session
             </Link>
           ) : (
             <div className={styles.waitingGroup}>
-              <button className={styles.playAgainBtn} disabled>
-                play again
-              </button>
-              <span className={styles.waitingHint}>waiting for host to start a new game</span>
+              <div className={styles.waitingDots}>
+                <span className={styles.dot} />
+                <span className={styles.dot} />
+                <span className={styles.dot} />
+              </div>
+              <span className={styles.waitingMessage}>waiting for host to start a new game</span>
             </div>
           )}
           <Link href="/" className={styles.homeLink}>

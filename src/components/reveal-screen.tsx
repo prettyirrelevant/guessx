@@ -114,21 +114,7 @@ export function RevealScreen({
         </span>
         <span className={styles.revealLabel}>
           {round.state === "revealing" ? (
-            <>
-              {round.isFinal ? `final results in ${countdown}s` : `next round in ${countdown}s`}
-              {isHost && showSkip && (
-                <button
-                  className={styles.skipBtn}
-                  disabled={skipping}
-                  onClick={() => {
-                    setSkipping(true);
-                    skipReveal({ roundId: round._id, userId: currentPlayer.userId });
-                  }}
-                >
-                  continue
-                </button>
-              )}
-            </>
+            round.isFinal ? `final results in ${countdown}s` : `next round in ${countdown}s`
           ) : (
             "results"
           )}
@@ -235,6 +221,21 @@ export function RevealScreen({
           </div>
         ))}
       </div>
+
+      {round.state === "revealing" && isHost && showSkip && (
+        <div className={styles.skipBar}>
+          <button
+            className={styles.skipBtn}
+            disabled={skipping}
+            onClick={() => {
+              setSkipping(true);
+              skipReveal({ roundId: round._id, userId: currentPlayer.userId });
+            }}
+          >
+            {round.isFinal ? "skip to results" : "skip to next round"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
