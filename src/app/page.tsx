@@ -108,7 +108,7 @@ function CreateRoomModal({
   const createRoom = useMutation(api.rooms.create);
 
   const [mode, setMode] = useState<"music" | "place" | "actor" | "flag">("music");
-  const [maxPlayers, setMaxPlayers] = useState(6);
+  const [maxPlayers, setMaxPlayers] = useState("6");
   const [totalRounds, setTotalRounds] = useState(5);
   const [roundDuration, setRoundDuration] = useState(20_000);
   const [country, setCountry] = useState(() => {
@@ -193,7 +193,7 @@ function CreateRoomModal({
       const result = await createRoom({
         hostId: sessionId,
         mode,
-        maxPlayers,
+        maxPlayers: Math.min(20, Math.max(2, Number(maxPlayers) || 2)),
         totalRounds,
         roundDuration,
         artist: mode === "music" ? selectedArtists.map((a) => a.id).join(",") : undefined,
@@ -450,9 +450,11 @@ function CreateRoomModal({
               min={2}
               max={20}
               value={maxPlayers}
-              onChange={(e) => {
-                const v = Math.min(20, Math.max(2, Number(e.target.value) || 2));
-                setMaxPlayers(v);
+              onChange={(e) => setMaxPlayers(e.target.value)}
+              onBlur={() => {
+                const n = Number(maxPlayers);
+                if (!Number.isFinite(n) || n < 2) setMaxPlayers("2");
+                else if (n > 20) setMaxPlayers("20");
               }}
             />
           </div>
