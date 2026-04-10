@@ -24,7 +24,9 @@ export function Lobby({ room, sessionId }: { room: Doc<"rooms">; sessionId: stri
   // that eat into the round countdown
   const mediaUrls = useQuery(
     api.rounds.mediaUrls,
-    room.mode === "place" || room.mode === "actor" ? { roomId: room._id } : "skip",
+    room.mode === "place" || room.mode === "actor" || room.mode === "flag"
+      ? { roomId: room._id }
+      : "skip",
   );
 
   useEffect(() => {
@@ -56,7 +58,9 @@ export function Lobby({ room, sessionId }: { room: Doc<"rooms">; sessionId: stri
       ? "guess the song"
       : room.mode === "actor"
         ? "guess the actor"
-        : "spot the landmark";
+        : room.mode === "flag"
+          ? "name the flag"
+          : "spot the landmark";
 
   return (
     <div className={styles.container}>

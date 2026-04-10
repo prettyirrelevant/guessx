@@ -159,7 +159,11 @@ function ActiveRound({
         ) : (
           <div className={styles.placeSection}>
             <p className={styles.placeHint}>
-              {room.mode === "actor" ? "who is this?" : "where is this?"}
+              {room.mode === "actor"
+                ? "who is this?"
+                : room.mode === "flag"
+                  ? "which country?"
+                  : "where is this?"}
             </p>
             {room.mode === "actor" ? (
               <div className={styles.actorImageWrapper}>
@@ -169,6 +173,17 @@ function ActiveRound({
                   className={styles.actorImage}
                   width={400}
                   height={500}
+                  unoptimized
+                />
+              </div>
+            ) : room.mode === "flag" ? (
+              <div className={styles.flagImageWrapper}>
+                <Image
+                  src={round.mediaUrl}
+                  alt="guess this flag"
+                  className={styles.flagImage}
+                  width={480}
+                  height={320}
                   unoptimized
                 />
               </div>

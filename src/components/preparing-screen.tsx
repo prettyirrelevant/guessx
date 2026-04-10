@@ -8,7 +8,12 @@ import { useClipboard, useWindowEvent } from "@mantine/hooks";
 import { Doc } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 
-import { prepareMusicContent, preparePlaceContent, prepareActorContent } from "@/lib/actions";
+import {
+  prepareMusicContent,
+  preparePlaceContent,
+  prepareActorContent,
+  prepareFlagContent,
+} from "@/lib/actions";
 
 import styles from "./preparing-screen.module.css";
 
@@ -16,6 +21,7 @@ const STEPS: Record<string, string[]> = {
   music: ["setting up your room", "choosing your tracks", "preparing the choices"],
   place: ["setting up your room", "picking your locations", "preparing the choices"],
   actor: ["setting up your room", "finding your actors", "preparing the choices"],
+  flag: ["setting up your room", "raising the flags", "preparing the choices"],
 };
 
 export function PreparingScreen({
@@ -48,6 +54,8 @@ export function PreparingScreen({
         content = await prepareMusicContent(room.artist ?? "3933641", room.totalRounds);
       } else if (room.mode === "actor") {
         content = await prepareActorContent(room.actorCategory ?? "hollywood", room.totalRounds);
+      } else if (room.mode === "flag") {
+        content = await prepareFlagContent(room.continent ?? "africa", room.totalRounds);
       } else {
         content = await preparePlaceContent(room.country ?? "US", room.totalRounds);
       }
@@ -68,6 +76,7 @@ export function PreparingScreen({
     room.artist,
     room.country,
     room.actorCategory,
+    room.continent,
     room.totalRounds,
     completePreparation,
   ]);

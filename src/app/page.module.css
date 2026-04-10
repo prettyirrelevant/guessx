@@ -180,13 +180,13 @@
 }
 
 .modeToggle {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
 .modeBtn {
-  flex: 1;
-  padding: 12px;
+  padding: 16px 12px;
   border-radius: var(--radius-sm);
   background: var(--surface2);
   border: 2px solid var(--border);

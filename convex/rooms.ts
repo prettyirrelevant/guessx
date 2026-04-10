@@ -15,13 +15,14 @@ async function createRoom(
   ctx: MutationCtx,
   args: {
     hostId: string;
-    mode: "music" | "place" | "actor";
+    mode: "music" | "place" | "actor" | "flag";
     maxPlayers: number;
     totalRounds: number;
     roundDuration: number;
     artist?: string;
     country?: string;
     actorCategory?: string;
+    continent?: string;
     hostName: string;
     hostAvatar: string;
   },
@@ -41,6 +42,7 @@ async function createRoom(
     artist: args.artist,
     country: args.country,
     actorCategory: args.actorCategory,
+    continent: args.continent,
     prepStartedAt: now,
     lastActivityAt: now,
   });
@@ -67,13 +69,14 @@ async function createRoom(
 export const create = mutation({
   args: {
     hostId: v.string(),
-    mode: v.union(v.literal("music"), v.literal("place"), v.literal("actor")),
+    mode: v.union(v.literal("music"), v.literal("place"), v.literal("actor"), v.literal("flag")),
     maxPlayers: v.number(),
     totalRounds: v.number(),
     roundDuration: v.number(),
     artist: v.optional(v.string()),
     country: v.optional(v.string()),
     actorCategory: v.optional(v.string()),
+    continent: v.optional(v.string()),
     hostName: v.string(),
     hostAvatar: v.string(),
   },
@@ -258,6 +261,7 @@ export const playAgain = mutation({
       artist: oldRoom.artist,
       country: oldRoom.country,
       actorCategory: oldRoom.actorCategory,
+      continent: oldRoom.continent,
       hostName: args.hostName,
       hostAvatar: args.hostAvatar,
     });

@@ -113,11 +113,11 @@ export function RevealScreen({
           round {round.roundNumber}/{room.totalRounds}
         </span>
         <span className={styles.revealLabel}>
-          {round.state === "revealing" ? (
-            round.isFinal ? `final results in ${countdown}s` : `next round in ${countdown}s`
-          ) : (
-            "results"
-          )}
+          {round.state === "revealing"
+            ? round.isFinal
+              ? `final results in ${countdown}s`
+              : `next round in ${countdown}s`
+            : "results"}
         </span>
       </div>
 

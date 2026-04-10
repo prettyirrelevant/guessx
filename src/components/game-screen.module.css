@@ -138,6 +138,26 @@
   border-radius: var(--radius-sm);
 }
 
+.flagImageWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background: var(--surface2);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.flagImage {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+}
+
 @keyframes subtleZoom {
   from {
     transform: scale(1);

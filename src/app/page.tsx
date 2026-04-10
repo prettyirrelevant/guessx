@@ -11,6 +11,7 @@ import { api } from "@convex/_generated/api";
 
 import { useSession } from "@/lib/session";
 import { COUNTRIES } from "@/lib/countries";
+import { CONTINENTS } from "@/lib/continents";
 import { POPULAR_ARTISTS } from "@/lib/artists";
 import { ACTOR_CATEGORIES } from "@/lib/actor-categories";
 import { searchArtists } from "@/lib/actions";
@@ -38,7 +39,7 @@ export default function Home() {
         <p className={styles.tagline}>
           challenge your friends in real-time.
           <br />
-          guess the song, spot the landmark, or name the actor. fastest finger wins.
+          guess the song, spot the landmark, guess the actor, or name the flag. fastest finger wins.
         </p>
 
         {hasProfile && (
@@ -106,7 +107,7 @@ function CreateRoomModal({
   const router = useRouter();
   const createRoom = useMutation(api.rooms.create);
 
-  const [mode, setMode] = useState<"music" | "place" | "actor">("music");
+  const [mode, setMode] = useState<"music" | "place" | "actor" | "flag">("music");
   const [maxPlayers, setMaxPlayers] = useState(6);
   const [totalRounds, setTotalRounds] = useState(5);
   const [roundDuration, setRoundDuration] = useState(20_000);
@@ -119,6 +120,7 @@ function CreateRoomModal({
     return COUNTRIES[0].code;
   });
   const [actorCategory, setActorCategory] = useState(ACTOR_CATEGORIES[0].code);
+  const [continent, setContinent] = useState(CONTINENTS[0].code);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -179,6 +181,11 @@ function CreateRoomModal({
       return;
     }
 
+    if (mode === "flag" && !continent) {
+      setError("pick a continent");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -192,6 +199,7 @@ function CreateRoomModal({
         artist: mode === "music" ? selectedArtists.map((a) => a.id).join(",") : undefined,
         country: mode === "place" ? country : undefined,
         actorCategory: mode === "actor" ? actorCategory : undefined,
+        continent: mode === "flag" ? continent : undefined,
         hostName: displayName,
         hostAvatar: avatar,
       });
@@ -239,6 +247,14 @@ function CreateRoomModal({
             >
               <div className={styles.modeBtnIcon}>🎬</div>
               <div className={styles.modeBtnLabel}>guess the actor</div>
+            </button>
+            <button
+              className={`${styles.modeBtn} ${mode === "flag" ? styles.active : ""}`}
+              onClick={() => setMode("flag")}
+              type="button"
+            >
+              <div className={styles.modeBtnIcon}>🚩</div>
+              <div className={styles.modeBtnLabel}>name the flag</div>
             </button>
           </div>
         </div>
@@ -400,6 +416,23 @@ function CreateRoomModal({
               onChange={(e) => setActorCategory(e.target.value)}
             >
               {ACTOR_CATEGORIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {mode === "flag" && (
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>continent</label>
+            <select
+              className={styles.formSelect}
+              value={continent}
+              onChange={(e) => setContinent(e.target.value)}
+            >
+              {CONTINENTS.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.name}
                 </option>
