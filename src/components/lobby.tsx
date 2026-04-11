@@ -101,7 +101,6 @@ export function Lobby({ room, sessionId }: { room: Doc<"rooms">; sessionId: stri
             {players?.map((player) => (
               <div key={player._id} className={styles.playerRow}>
                 <Image
-                  unoptimized
                   src={getAvatarUrl(player.avatar)}
                   alt={player.displayName}
                   className={styles.playerAvatar}

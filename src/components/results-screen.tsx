@@ -59,7 +59,6 @@ export function ResultsScreen({ room, sessionId }: { room: Doc<"rooms">; session
             >
               <div className={styles.podiumRank}>{i === 0 ? "👑" : `#${i + 1}`}</div>
               <Image
-                unoptimized
                 src={getAvatarUrl(player.avatar)}
                 alt={player.displayName}
                 className={styles.podiumAvatar}
@@ -80,7 +79,6 @@ export function ResultsScreen({ room, sessionId }: { room: Doc<"rooms">; session
             >
               <span className={styles.listRank}>#{i + 1}</span>
               <Image
-                unoptimized
                 src={getAvatarUrl(player.avatar)}
                 alt={player.displayName}
                 className={styles.listAvatar}

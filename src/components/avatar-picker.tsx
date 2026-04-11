@@ -24,7 +24,7 @@ export function AvatarPicker({
             type="button"
             aria-label={`select ${seed} avatar`}
           >
-            <Image src={getAvatarUrl(seed)} alt={seed} width={32} height={32} unoptimized />
+            <Image src={getAvatarUrl(seed)} alt={seed} width={32} height={32} />
           </button>
         ))}
       </div>

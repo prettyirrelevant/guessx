@@ -173,7 +173,6 @@ function ActiveRound({
                   className={styles.actorImage}
                   width={400}
                   height={500}
-                  unoptimized
                 />
               </div>
             ) : room.mode === "flag" ? (
@@ -184,7 +183,6 @@ function ActiveRound({
                   className={styles.flagImage}
                   width={480}
                   height={320}
-                  unoptimized
                 />
               </div>
             ) : (
@@ -223,7 +221,6 @@ function ActiveRound({
           <div className={styles.answeredAvatars}>
             {connectedPlayers.slice(0, 8).map((player) => (
               <Image
-                unoptimized
                 key={player._id}
                 src={getAvatarUrl(player.avatar)}
                 alt={player.displayName}

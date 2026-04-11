@@ -278,7 +278,6 @@ function CreateRoomModal({
                       className={styles.artistChipImg}
                       width={22}
                       height={22}
-                      unoptimized
                     />
                     <span>{a.name}</span>
                     <button
@@ -340,7 +339,6 @@ function CreateRoomModal({
                             className={styles.artistImg}
                             width={32}
                             height={32}
-                            unoptimized
                           />
                           <span>{a.name}</span>
                           {isSelected && <Check size={14} className={styles.checkIcon} />}
@@ -369,7 +367,6 @@ function CreateRoomModal({
                           className={styles.artistImg}
                           width={44}
                           height={44}
-                          unoptimized
                         />
                         <span className={styles.artistName}>{a.name}</span>
                       </button>

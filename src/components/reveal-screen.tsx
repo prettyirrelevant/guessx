@@ -145,7 +145,6 @@ export function RevealScreen({
             >
               <div className={styles.resultLeft}>
                 <Image
-                  unoptimized
                   src={getAvatarUrl(player.avatar)}
                   alt={player.displayName}
                   className={styles.resultAvatar}
@@ -206,7 +205,6 @@ export function RevealScreen({
           >
             <span className={styles.standingRank}>#{i + 1}</span>
             <Image
-              unoptimized
               src={getAvatarUrl(player.avatar)}
               alt={player.displayName}
               className={styles.standingAvatar}
