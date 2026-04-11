@@ -80,7 +80,7 @@ const AVATAR_SEEDS = [
 const DICEBEAR_STYLE = "adventurer";
 
 export function getAvatarUrl(seed: string): string {
-  return `https://api.dicebear.com/9.x/${DICEBEAR_STYLE}/png?seed=${encodeURIComponent(seed)}&size=128`;
+  return `https://api.dicebear.com/9.x/${DICEBEAR_STYLE}/svg?seed=${encodeURIComponent(seed)}`;
 }
 
 export function useSession() {
