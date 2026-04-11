@@ -51,8 +51,8 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   useHeartbeat({ roomId: room?._id, userId: sessionId });
 
   // auto-join if the user has a profile but isn't a player yet
-  const shouldAutoJoin =
-    ready && hasProfile && !isPlayer && !joining && !joinError && room?.state === "waiting";
+  const canJoin = room?.state === "waiting" || room?.state === "preparing";
+  const shouldAutoJoin = ready && hasProfile && !isPlayer && !joining && !joinError && canJoin;
   useEffect(() => {
     if (shouldAutoJoin) {
       doJoin();
@@ -96,7 +96,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
   // not a player yet
   if (!isPlayer) {
-    if (room.state !== "waiting") {
+    if (!canJoin) {
       return (
         <div className={styles.loading}>
           <h2 className={styles.errorTitle}>can&apos;t join</h2>
