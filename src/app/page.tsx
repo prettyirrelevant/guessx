@@ -39,7 +39,7 @@ export default function Home() {
         <p className={styles.tagline}>
           challenge your friends in real-time.
           <br />
-          guess the song, spot the landmark, guess the actor, or name the flag. fastest finger wins.
+          guess songs, landmarks, actors, or flags. fastest finger wins.
         </p>
 
         {hasProfile && (
