@@ -125,10 +125,14 @@ export async function prepareMusicContent(
     if (rounds.length >= totalRounds) break;
     if (usedAnswers.has(candidate.answer)) continue;
 
-    const pool = distractorLabelsByArtist[candidate.artistIndex];
-    const distractors = shuffle(
-      pool.filter((d) => d !== candidate.answer && !usedAnswers.has(d)),
-    ).slice(0, 3);
+    // same shrinking-pool problem as buildRounds: fall back to reusing past
+    // answers as distractors when the fresh pool drops below 3.
+    const artistPool = distractorLabelsByArtist[candidate.artistIndex];
+    let pool = artistPool.filter((d) => d !== candidate.answer && !usedAnswers.has(d));
+    if (pool.length < 3) {
+      pool = artistPool.filter((d) => d !== candidate.answer);
+    }
+    const distractors = shuffle(pool).slice(0, 3);
 
     if (distractors.length < 3) continue;
 
@@ -144,7 +148,7 @@ export async function prepareMusicContent(
     });
   }
 
-  if (rounds.length === 0) {
+  if (rounds.length < totalRounds) {
     throw new Error("could not fetch enough tracks for the selected artists");
   }
 

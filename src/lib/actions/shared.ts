@@ -39,9 +39,14 @@ export function buildRounds({
     if (rounds.length >= totalRounds) break;
     if (usedAnswers.has(candidate.answer)) continue;
 
-    const distractors = shuffle(
-      distractorNames.filter((d) => d !== candidate.answer && !usedAnswers.has(d)),
-    ).slice(0, 3);
+    // fresh pool shrinks by 1 per round: size N on round i leaves N-i options.
+    // with N=11, totalRounds=10, round 9 has only 2 left — fall back to reusing
+    // past answers as distractors instead of silently dropping the round.
+    let pool = distractorNames.filter((d) => d !== candidate.answer && !usedAnswers.has(d));
+    if (pool.length < 3) {
+      pool = distractorNames.filter((d) => d !== candidate.answer);
+    }
+    const distractors = shuffle(pool).slice(0, 3);
 
     if (distractors.length < 3) continue;
 
@@ -55,6 +60,12 @@ export function buildRounds({
       mediaArtist: candidate.mediaArtist,
       isFinal: rounds.length === totalRounds - 1,
     });
+  }
+
+  if (rounds.length < totalRounds) {
+    throw new Error(
+      `could not build ${totalRounds} rounds (only ${rounds.length} valid candidates)`,
+    );
   }
 
   return rounds;

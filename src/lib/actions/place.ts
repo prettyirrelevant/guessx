@@ -60,15 +60,9 @@ export async function preparePlaceContent(
       : [],
   );
 
-  const rounds = buildRounds({
+  return buildRounds({
     candidates,
     distractorNames: landmarks,
     totalRounds,
   });
-
-  if (rounds.length === 0) {
-    throw new Error("could not fetch enough landmarks for this country");
-  }
-
-  return rounds;
 }

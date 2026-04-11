@@ -162,15 +162,9 @@ export async function prepareActorContent(
     mediaTitle: a.name,
   }));
 
-  const rounds = buildRounds({
+  return buildRounds({
     candidates,
     distractorNames: actors.map((a) => a.name),
     totalRounds,
   });
-
-  if (rounds.length === 0) {
-    throw new Error("could not prepare enough rounds for this category");
-  }
-
-  return rounds;
 }

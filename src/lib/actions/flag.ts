@@ -43,15 +43,9 @@ export async function prepareFlagContent(
     mediaTitle: c.name.common,
   }));
 
-  const rounds = buildRounds({
+  return buildRounds({
     candidates,
     distractorNames: names,
     totalRounds,
   });
-
-  if (rounds.length === 0) {
-    throw new Error("could not prepare enough rounds for this continent");
-  }
-
-  return rounds;
 }
