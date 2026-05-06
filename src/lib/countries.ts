@@ -1,5 +1,6 @@
 // countries with strong wikimedia landmark coverage
 export const COUNTRIES: { code: string; name: string }[] = [
+  { code: "WORLDWIDE", name: "Worldwide" },
   { code: "AU", name: "Australia" },
   { code: "BR", name: "Brazil" },
   { code: "CN", name: "China" },
