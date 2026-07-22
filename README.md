@@ -43,6 +43,7 @@ pnpm dev           # start next.js dev server
 Provider configuration:
 
 - `TMDB_API_READ_ACCESS_TOKEN` is required for actor mode.
+- `PREPARATION_SECRET` must contain the same private random value in the Next.js and Convex environments. It authenticates the server-side content preparation bridge. Generate one with `openssl rand -hex 32`, add it to `.env.local`, and run `pnpx convex env set PREPARATION_SECRET <value>`.
 - Country metadata is bundled locally. Flag mode uses FlagCDN and does not call REST Countries.
 
 See the in-app `/credits` page for provider attribution and licensing details.

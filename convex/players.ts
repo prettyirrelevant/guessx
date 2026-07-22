@@ -1,22 +1,34 @@
 import { v } from "convex/values";
 
+import { disconnectPresence, listPlayersWithPresence, touchPresence } from "./presence";
+import { DISCONNECT_GRACE_MS, MAX_PLAYERS, PRESENCE_TIMEOUT_MS } from "./model";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 export const list = query({
   args: { roomId: v.id("rooms"), userId: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const room = await ctx.db.get(args.roomId);
-    const players = await ctx.db
-      .query("players")
-      .withIndex("by_roomId", (q) => q.eq("roomId", args.roomId))
-      .collect();
+    const [room, entries] = await Promise.all([
+      ctx.db.get(args.roomId),
+      listPlayersWithPresence(ctx.db, args.roomId),
+    ]);
 
-    return players.map(({ userId, ...player }) => ({
-      ...player,
-      isCurrent: userId === args.userId,
-      isHost: userId === room?.hostId,
-    }));
+    return entries.map(({ player, status, disconnectedAt }) => {
+      const {
+        userId,
+        status: _legacyStatus,
+        lastSeenAt: _legacyLastSeenAt,
+        disconnectedAt: _legacyDisconnectedAt,
+        ...publicPlayer
+      } = player;
+      return {
+        ...publicPlayer,
+        status,
+        disconnectedAt,
+        isCurrent: userId === args.userId,
+        isHost: userId === room?.hostId,
+      };
+    });
   },
 });
 
@@ -26,11 +38,20 @@ export const leaderboard = query({
     const players = await ctx.db
       .query("players")
       .withIndex("by_roomId", (q) => q.eq("roomId", args.roomId))
-      .collect();
+      .take(MAX_PLAYERS);
 
     return [...players]
       .sort((a, b) => b.totalScore - a.totalScore)
-      .map(({ userId, ...player }) => ({ ...player, isCurrent: userId === args.userId }));
+      .map((player) => {
+        const {
+          userId,
+          status: _legacyStatus,
+          lastSeenAt: _legacyLastSeenAt,
+          disconnectedAt: _legacyDisconnectedAt,
+          ...publicPlayer
+        } = player;
+        return { ...publicPlayer, isCurrent: userId === args.userId };
+      });
   },
 });
 
@@ -42,28 +63,20 @@ export const heartbeat = mutation({
   handler: async (ctx, args) => {
     const player = await ctx.db
       .query("players")
-      .withIndex("by_roomId_userId", (q) => q.eq("roomId", args.roomId).eq("userId", args.userId))
+      .withIndex("by_roomId_and_userId", (q) =>
+        q.eq("roomId", args.roomId).eq("userId", args.userId),
+      )
       .unique();
-
-    if (!player) return;
+    if (!player) return null;
 
     const now = Date.now();
-
-    await ctx.db.patch(player._id, {
-      status: "connected",
-      lastSeenAt: now,
-      ...(player.status === "disconnected" ? { disconnectedAt: undefined } : {}),
-    });
-
-    const room = await ctx.db.get(args.roomId);
-    if (room?.state === "waiting") {
-      await ctx.db.patch(room._id, { lastActivityAt: now });
+    const needsWatchdog = await touchPresence(ctx, player._id, player.roomId, now);
+    if (needsWatchdog) {
+      await ctx.scheduler.runAfter(PRESENCE_TIMEOUT_MS, internal.scheduling.expirePresence, {
+        playerId: player._id,
+      });
     }
-
-    await ctx.scheduler.runAfter(30_000, internal.scheduling.expireHeartbeat, {
-      playerId: player._id,
-      expectedLastSeenAt: now,
-    });
+    return null;
   },
 });
 
@@ -72,19 +85,19 @@ export const markDisconnected = mutation({
   handler: async (ctx, args) => {
     const player = await ctx.db
       .query("players")
-      .withIndex("by_roomId_userId", (q) => q.eq("roomId", args.roomId).eq("userId", args.userId))
+      .withIndex("by_roomId_and_userId", (q) =>
+        q.eq("roomId", args.roomId).eq("userId", args.userId),
+      )
       .unique();
-    if (!player || player.status === "disconnected") return;
+    if (!player) return null;
 
-    const now = Date.now();
-    await ctx.db.patch(player._id, {
-      status: "disconnected",
-      disconnectedAt: now,
-    });
-
-    await ctx.scheduler.runAfter(45_000, internal.scheduling.checkDisconnect, {
-      playerId: player._id,
-      roomId: player.roomId,
-    });
+    const disconnected = await disconnectPresence(ctx, player._id, Date.now());
+    if (disconnected) {
+      await ctx.scheduler.runAfter(DISCONNECT_GRACE_MS, internal.scheduling.checkDisconnect, {
+        playerId: player._id,
+        roomId: player.roomId,
+      });
+    }
+    return null;
   },
 });

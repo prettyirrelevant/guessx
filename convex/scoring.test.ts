@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import { describe, it, expect } from "vitest";
 import { convexTest, type TestConvex } from "convex-test";
 
@@ -55,7 +57,7 @@ async function setupGame(
     isFinal: i === totalRounds - 1,
   }));
 
-  await t.mutation(api.rooms.completePreparation, { roomId, userId: "user-0", rounds });
+  await t.mutation(internal.preparation.complete, { roomId, userId: "user-0", rounds });
 
   for (let i = 1; i < playerCount; i++) {
     await t.mutation(api.rooms.join, {
@@ -516,9 +518,7 @@ describe("disconnect handling", () => {
     const { roomId, players } = await setupGame(t);
 
     const host = players.find((p) => p.userId === "user-0")!;
-    await t.run(async (ctx) => {
-      await ctx.db.patch(host._id, { status: "disconnected" });
-    });
+    await t.mutation(api.players.markDisconnected, { roomId, userId: host.userId });
 
     await t.mutation(internal.scheduling.checkDisconnect, {
       playerId: host._id,
@@ -536,9 +536,7 @@ describe("disconnect handling", () => {
 
     // disconnect both players
     for (const player of players) {
-      await t.run(async (ctx) => {
-        await ctx.db.patch(player._id, { status: "disconnected" });
-      });
+      await t.mutation(api.players.markDisconnected, { roomId, userId: player.userId });
     }
 
     await t.mutation(internal.scheduling.checkDisconnect, {
@@ -557,9 +555,7 @@ describe("disconnect handling", () => {
     const host = players.find((p) => p.userId === "user-0")!;
 
     // disconnect then immediately reconnect
-    await t.run(async (ctx) => {
-      await ctx.db.patch(host._id, { status: "disconnected" });
-    });
+    await t.mutation(api.players.markDisconnected, { roomId, userId: host.userId });
     await t.mutation(api.players.heartbeat, { roomId, userId: "user-0" });
 
     // scheduled check fires but player is connected again
@@ -611,7 +607,7 @@ describe("scoring: multi-round streak accumulation", () => {
       const round = await t.run(async (ctx) => {
         return ctx.db
           .query("rounds")
-          .withIndex("by_roomId_roundNumber", (q) =>
+          .withIndex("by_roomId_and_roundNumber", (q) =>
             q.eq("roomId", roomId).eq("roundNumber", roundNum),
           )
           .unique();
@@ -652,7 +648,9 @@ describe("scoring: multi-round streak accumulation", () => {
       return t.run(async (ctx) => {
         return ctx.db
           .query("rounds")
-          .withIndex("by_roomId_roundNumber", (q) => q.eq("roomId", roomId).eq("roundNumber", num))
+          .withIndex("by_roomId_and_roundNumber", (q) =>
+            q.eq("roomId", roomId).eq("roundNumber", num),
+          )
           .unique();
       });
     }

@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import { describe, it, expect, vi } from "vitest";
 import { convexTest, type TestConvex } from "convex-test";
 
@@ -19,6 +21,24 @@ async function listPlayers(t: Ctx, roomId: Id<"rooms">) {
       .query("players")
       .withIndex("by_roomId", (q) => q.eq("roomId", roomId))
       .collect(),
+  );
+}
+
+async function getPresence(t: Ctx, playerId: Id<"players">) {
+  return t.run(async (ctx) =>
+    ctx.db
+      .query("playerPresence")
+      .withIndex("by_playerId", (q) => q.eq("playerId", playerId))
+      .unique(),
+  );
+}
+
+async function getHeartbeat(t: Ctx, playerId: Id<"players">) {
+  return t.run(async (ctx) =>
+    ctx.db
+      .query("playerHeartbeats")
+      .withIndex("by_playerId", (q) => q.eq("playerId", playerId))
+      .unique(),
   );
 }
 
@@ -57,7 +77,7 @@ function makeRounds(count: number) {
 async function createWaitingRoom(t: Ctx, overrides?: Record<string, unknown>) {
   const host = makeHost(overrides);
   const { roomId, roomCode } = await t.mutation(api.rooms.create, host);
-  await t.mutation(api.rooms.completePreparation, {
+  await t.mutation(internal.preparation.complete, {
     roomId,
     userId: host.hostId as string,
     rounds: makeRounds(host.totalRounds as number),
@@ -102,7 +122,7 @@ describe("room creation", () => {
     const players = await listPlayers(t, roomId);
     expect(players).toHaveLength(1);
     expect(players[0].userId).toBe("user-host");
-    expect(players[0].status).toBe("connected");
+    expect((await getPresence(t, players[0]._id))?.status).toBe("connected");
     expect(players[0].totalScore).toBe(0);
   });
 });
@@ -112,7 +132,7 @@ describe("room preparation", () => {
     const t = convexTest(schema, modules);
     const { roomId } = await t.mutation(api.rooms.create, makeHost());
 
-    const result = await t.mutation(api.rooms.completePreparation, {
+    const result = await t.mutation(internal.preparation.complete, {
       roomId,
       userId: "user-random",
       rounds: makeRounds(3),
@@ -128,7 +148,7 @@ describe("room preparation", () => {
     const rounds = makeRounds(2);
     rounds[1].roundNumber = 3;
 
-    const result = await t.mutation(api.rooms.completePreparation, {
+    const result = await t.mutation(internal.preparation.complete, {
       roomId,
       userId: "user-host",
       rounds,
@@ -142,7 +162,7 @@ describe("room preparation", () => {
     const t = convexTest(schema, modules);
     const { roomId, roomCode } = await t.mutation(api.rooms.create, makeHost());
 
-    await t.mutation(api.rooms.completePreparation, {
+    await t.mutation(internal.preparation.complete, {
       roomId,
       userId: "user-host",
       rounds: makeRounds(3),
@@ -154,7 +174,7 @@ describe("room preparation", () => {
     const round = await t.run(async (ctx) =>
       ctx.db
         .query("rounds")
-        .withIndex("by_roomId_roundNumber", (q) => q.eq("roomId", roomId).eq("roundNumber", 1))
+        .withIndex("by_roomId_and_roundNumber", (q) => q.eq("roomId", roomId).eq("roundNumber", 1))
         .unique(),
     );
     expect(round?.state).toBe("pending");
@@ -165,7 +185,7 @@ describe("room preparation", () => {
     const { roomId } = await createWaitingRoom(t);
 
     // calling again while in "waiting" should not insert more rounds
-    await t.mutation(api.rooms.completePreparation, {
+    await t.mutation(internal.preparation.complete, {
       roomId,
       userId: "user-host",
       rounds: makeRounds(5),
@@ -174,7 +194,7 @@ describe("room preparation", () => {
     const rounds = await t.run(async (ctx) =>
       ctx.db
         .query("rounds")
-        .withIndex("by_roomId", (q) => q.eq("roomId", roomId))
+        .withIndex("by_roomId_and_roundNumber", (q) => q.eq("roomId", roomId))
         .collect(),
     );
     expect(rounds).toHaveLength(3);
@@ -262,7 +282,7 @@ describe("joining rooms", () => {
     expect(afterRejoin).toHaveLength(2);
 
     const reconnected = afterRejoin.find((p) => p.userId === "user-2")!;
-    expect(reconnected.status).toBe("connected");
+    expect((await getPresence(t, reconnected._id))?.status).toBe("connected");
   });
 });
 
@@ -424,7 +444,7 @@ describe("heartbeat", () => {
       vi.advanceTimersByTime(30_000);
       await t.finishInProgressScheduledFunctions();
 
-      expect((await t.run(async (ctx) => ctx.db.get(host._id)))?.status).toBe("disconnected");
+      expect((await getPresence(t, host._id))?.status).toBe("disconnected");
     } finally {
       vi.useRealTimers();
     }
@@ -439,13 +459,13 @@ describe("heartbeat", () => {
     const player2 = players.find((p) => p.userId === "user-2")!;
     await disconnectPlayer(t, player2._id);
 
-    const disconnected = await t.run(async (ctx) => ctx.db.get(player2._id));
+    const disconnected = await getPresence(t, player2._id);
     expect(disconnected?.status).toBe("disconnected");
     expect(disconnected?.disconnectedAt).toBeDefined();
 
     await t.mutation(api.players.heartbeat, { roomId, userId: "user-2" });
 
-    const reconnected = await t.run(async (ctx) => ctx.db.get(player2._id));
+    const reconnected = await getPresence(t, player2._id);
     expect(reconnected?.status).toBe("connected");
     expect(reconnected?.disconnectedAt).toBeUndefined();
   });
@@ -465,13 +485,13 @@ describe("heartbeat", () => {
     const t = convexTest(schema, modules);
     const { roomId } = await createWaitingRoom(t);
 
-    const before = await listPlayers(t, roomId);
-    const oldLastSeen = before[0].lastSeenAt;
+    const [host] = await listPlayers(t, roomId);
+    const oldLastSeen = (await getHeartbeat(t, host._id))?.lastSeenAt;
 
     await t.mutation(api.players.heartbeat, { roomId, userId: "user-host" });
 
-    const after = await listPlayers(t, roomId);
-    expect(after[0].lastSeenAt).toBeGreaterThanOrEqual(oldLastSeen!);
+    const after = await getHeartbeat(t, host._id);
+    expect(after?.lastSeenAt).toBeGreaterThanOrEqual(oldLastSeen!);
   });
 });
 

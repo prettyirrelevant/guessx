@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 
+import { listPlayersWithPresence } from "./presence";
+import { DISCONNECT_GRACE_MS, MAX_PLAYERS, PRESENCE_TIMEOUT_MS } from "./model";
 import { internalMutation, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -16,6 +18,7 @@ export const abandonIfStillPreparing = internalMutation({
     if (room?.state === "preparing") {
       await ctx.db.patch(args.roomId, { state: "abandoned" });
     }
+    return null;
   },
 });
 
@@ -23,36 +26,37 @@ export const abandonIdleRoom = internalMutation({
   args: { roomId: v.id("rooms") },
   handler: async (ctx, args) => {
     const room = await ctx.db.get(args.roomId);
-    if (!room || room.state !== "waiting") return;
+    if (!room || room.state !== "waiting") return null;
 
     const remaining = IDLE_ROOM_TIMEOUT - (Date.now() - room.lastActivityAt);
     if (remaining <= 0) {
       await ctx.db.patch(args.roomId, { state: "abandoned" });
-      return;
+      return null;
     }
 
     await ctx.scheduler.runAfter(remaining, internal.scheduling.abandonIdleRoom, {
       roomId: args.roomId,
     });
+    return null;
   },
 });
 
 export async function endRoundHandler(ctx: MutationCtx, roundId: Id<"rounds">) {
   const round = await ctx.db.get(roundId);
-  if (!round || round.state !== "active") return;
+  if (!round || round.state !== "active") return null;
 
   const room = await ctx.db.get(round.roomId);
-  if (!room) return;
+  if (!room) return null;
 
   const answers = await ctx.db
     .query("answers")
     .withIndex("by_roundId", (q) => q.eq("roundId", roundId))
-    .collect();
+    .take(MAX_PLAYERS);
 
   const players = await ctx.db
     .query("players")
     .withIndex("by_roomId", (q) => q.eq("roomId", round.roomId))
-    .collect();
+    .take(MAX_PLAYERS);
 
   // build leader position map for diminishing scoring
   const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);
@@ -114,6 +118,7 @@ export async function endRoundHandler(ctx: MutationCtx, roundId: Id<"rounds">) {
   await ctx.scheduler.runAfter(10_000, internal.scheduling.endReveal, {
     roundId,
   });
+  return null;
 }
 
 export const endRound = internalMutation({
@@ -123,12 +128,12 @@ export const endRound = internalMutation({
 
 export async function endRevealHandler(ctx: MutationCtx, roundId: Id<"rounds">) {
   const round = await ctx.db.get(roundId);
-  if (!round || round.state !== "revealing") return;
+  if (!round || round.state !== "revealing") return null;
 
   await ctx.db.patch(roundId, { state: "complete" });
 
   const room = await ctx.db.get(round.roomId);
-  if (!room) return;
+  if (!room) return null;
 
   // if this was the final round, end the game
   if (round.isFinal) {
@@ -136,13 +141,13 @@ export async function endRevealHandler(ctx: MutationCtx, roundId: Id<"rounds">) 
     await ctx.scheduler.runAfter(10 * 60_000, internal.scheduling.cleanupFinishedRoom, {
       roomId: room._id,
     });
-    return;
+    return null;
   }
 
   // advance to next round
   const nextRound = await ctx.db
     .query("rounds")
-    .withIndex("by_roomId_roundNumber", (q) =>
+    .withIndex("by_roomId_and_roundNumber", (q) =>
       q.eq("roomId", round.roomId).eq("roundNumber", round.roundNumber + 1),
     )
     .unique();
@@ -152,7 +157,7 @@ export async function endRevealHandler(ctx: MutationCtx, roundId: Id<"rounds">) 
     await ctx.scheduler.runAfter(10 * 60_000, internal.scheduling.cleanupFinishedRoom, {
       roomId: room._id,
     });
-    return;
+    return null;
   }
 
   const now = Date.now();
@@ -173,6 +178,7 @@ export async function endRevealHandler(ctx: MutationCtx, roundId: Id<"rounds">) 
   await ctx.scheduler.runAt(endsAt, internal.scheduling.endRound, {
     roundId: nextRound._id,
   });
+  return null;
 }
 
 export const endReveal = internalMutation({
@@ -187,21 +193,24 @@ export const checkDisconnect = internalMutation({
   },
   handler: async (ctx, args) => {
     const player = await ctx.db.get(args.playerId);
-    if (!player || player.status !== "disconnected") return;
+    if (!player) return null;
+
+    const presence = await ctx.db
+      .query("playerPresence")
+      .withIndex("by_playerId", (q) => q.eq("playerId", player._id))
+      .unique();
+    if ((presence?.status ?? player.status) !== "disconnected") return null;
 
     const room = await ctx.db.get(args.roomId);
-    if (!room || room.state === "abandoned" || room.state === "finished") return;
+    if (!room || room.state === "abandoned" || room.state === "finished") return null;
 
-    const players = await ctx.db
-      .query("players")
-      .withIndex("by_roomId", (q) => q.eq("roomId", args.roomId))
-      .collect();
-
-    const connected = players.filter((p) => p.status === "connected");
+    const connected = (await listPlayersWithPresence(ctx.db, args.roomId))
+      .filter(({ status }) => status === "connected")
+      .map(({ player: connectedPlayer }) => connectedPlayer);
 
     if (connected.length === 0) {
       await ctx.db.patch(args.roomId, { state: "abandoned" });
-      return;
+      return null;
     }
 
     // promote next host if the disconnected player was the host
@@ -211,69 +220,92 @@ export const checkDisconnect = internalMutation({
         await ctx.db.patch(args.roomId, { hostId: nextHost.userId });
       }
     }
+    return null;
   },
 });
 
-export const expireHeartbeat = internalMutation({
-  args: {
-    playerId: v.id("players"),
-    expectedLastSeenAt: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const player = await ctx.db.get(args.playerId);
-    if (
-      !player ||
-      player.status !== "connected" ||
-      player.lastSeenAt !== args.expectedLastSeenAt ||
-      Date.now() - args.expectedLastSeenAt < 30_000
-    ) {
-      return;
-    }
+async function expirePresenceHandler(ctx: MutationCtx, playerId: Id<"players">) {
+  const player = await ctx.db.get(playerId);
+  if (!player) return null;
 
-    const now = Date.now();
-    await ctx.db.patch(player._id, {
+  const [presence, heartbeat] = await Promise.all([
+    ctx.db
+      .query("playerPresence")
+      .withIndex("by_playerId", (q) => q.eq("playerId", playerId))
+      .unique(),
+    ctx.db
+      .query("playerHeartbeats")
+      .withIndex("by_playerId", (q) => q.eq("playerId", playerId))
+      .unique(),
+  ]);
+  if ((presence?.status ?? player.status) !== "connected") return null;
+
+  const lastSeenAt = heartbeat?.lastSeenAt ?? player.lastSeenAt ?? 0;
+  const remaining = PRESENCE_TIMEOUT_MS - (Date.now() - lastSeenAt);
+  if (remaining > 0) {
+    await ctx.scheduler.runAfter(remaining, internal.scheduling.expirePresence, { playerId });
+    return null;
+  }
+
+  const now = Date.now();
+  if (presence) {
+    await ctx.db.patch(presence._id, { status: "disconnected", disconnectedAt: now });
+  } else {
+    await ctx.db.insert("playerPresence", {
+      playerId,
+      roomId: player.roomId,
       status: "disconnected",
       disconnectedAt: now,
     });
+  }
 
-    const room = await ctx.db.get(player.roomId);
-    if (room?.state === "in_progress") {
-      const round = await ctx.db
-        .query("rounds")
-        .withIndex("by_roomId_roundNumber", (q) =>
-          q.eq("roomId", room._id).eq("roundNumber", room.currentRound),
-        )
-        .unique();
-      if (round?.state === "active") {
-        const [players, answers] = await Promise.all([
-          ctx.db
-            .query("players")
-            .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
-            .collect(),
-          ctx.db
-            .query("answers")
-            .withIndex("by_roundId", (q) => q.eq("roundId", round._id))
-            .collect(),
-        ]);
-        const connectedPlayerIds = new Set(
-          players
-            .filter((candidate) => candidate.status === "connected")
-            .map((candidate) => candidate._id),
-        );
-        const connectedAnswerCount = answers.filter((answer) =>
-          connectedPlayerIds.has(answer.playerId),
-        ).length;
-        if (connectedPlayerIds.size > 0 && connectedAnswerCount >= connectedPlayerIds.size) {
-          await endRoundHandler(ctx, round._id);
-        }
+  const room = await ctx.db.get(player.roomId);
+  if (room?.state === "in_progress") {
+    const round = await ctx.db
+      .query("rounds")
+      .withIndex("by_roomId_and_roundNumber", (q) =>
+        q.eq("roomId", room._id).eq("roundNumber", room.currentRound),
+      )
+      .unique();
+    if (round?.state === "active") {
+      const [players, answers] = await Promise.all([
+        listPlayersWithPresence(ctx.db, room._id),
+        ctx.db
+          .query("answers")
+          .withIndex("by_roundId", (q) => q.eq("roundId", round._id))
+          .take(MAX_PLAYERS),
+      ]);
+      const connectedPlayerIds = new Set(
+        players
+          .filter(({ status }) => status === "connected")
+          .map(({ player: candidate }) => candidate._id),
+      );
+      const connectedAnswerCount = answers.filter((answer) =>
+        connectedPlayerIds.has(answer.playerId),
+      ).length;
+      if (connectedPlayerIds.size > 0 && connectedAnswerCount >= connectedPlayerIds.size) {
+        await endRoundHandler(ctx, round._id);
       }
     }
+  }
 
-    await ctx.scheduler.runAfter(45_000, internal.scheduling.checkDisconnect, {
-      playerId: player._id,
-      roomId: player.roomId,
-    });
-  },
+  await ctx.scheduler.runAfter(DISCONNECT_GRACE_MS, internal.scheduling.checkDisconnect, {
+    playerId: player._id,
+    roomId: player.roomId,
+  });
+  return null;
+}
+
+export const expirePresence = internalMutation({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, args) => expirePresenceHandler(ctx, args.playerId),
+});
+
+// Keep this compatibility entrypoint for jobs scheduled by the previous deploy.
+// It can be removed after the old 30-second jobs have drained.
+export const expireHeartbeat = internalMutation({
+  args: { playerId: v.id("players"), expectedLastSeenAt: v.number() },
+  handler: async (ctx, args) => expirePresenceHandler(ctx, args.playerId),
 });
 
 export const cleanupFinishedRoom = internalMutation({
@@ -283,5 +315,6 @@ export const cleanupFinishedRoom = internalMutation({
     if (room) {
       await ctx.db.patch(args.roomId, { state: "abandoned" });
     }
+    return null;
   },
 });

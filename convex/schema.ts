@@ -1,19 +1,21 @@
 import { v } from "convex/values";
 import { defineSchema, defineTable } from "convex/server";
 
+import {
+  presenceStatusValidator,
+  roomModeValidator,
+  roomStateValidator,
+  roundContentValidator,
+  roundStateValidator,
+} from "./model";
+
 export default defineSchema({
   rooms: defineTable({
     roomId: v.string(),
     // Bearer capability for host-only operations. Never return this from public queries.
     hostId: v.string(),
-    state: v.union(
-      v.literal("preparing"),
-      v.literal("waiting"),
-      v.literal("in_progress"),
-      v.literal("finished"),
-      v.literal("abandoned"),
-    ),
-    mode: v.union(v.literal("music"), v.literal("place"), v.literal("actor"), v.literal("flag")),
+    state: roomStateValidator,
+    mode: roomModeValidator,
     maxPlayers: v.number(),
     totalRounds: v.number(),
     roundDuration: v.number(),
@@ -25,9 +27,7 @@ export default defineSchema({
     prepStartedAt: v.optional(v.number()),
     lastActivityAt: v.number(),
     nextRoomId: v.optional(v.string()),
-  })
-    .index("by_roomId", ["roomId"])
-    .index("by_state", ["state"]),
+  }).index("by_roomId", ["roomId"]),
 
   players: defineTable({
     roomId: v.id("rooms"),
@@ -35,40 +35,39 @@ export default defineSchema({
     userId: v.string(),
     displayName: v.string(),
     avatar: v.string(),
-    status: v.union(v.literal("connected"), v.literal("disconnected")),
     totalScore: v.number(),
     streak: v.number(),
     joinedAt: v.number(),
+    // Deprecated presence fields. Keep optional during the online migration,
+    // then remove after existing documents have been cleaned up.
+    status: v.optional(presenceStatusValidator),
     disconnectedAt: v.optional(v.number()),
     lastSeenAt: v.optional(v.number()),
   })
     .index("by_roomId", ["roomId"])
-    .index("by_roomId_userId", ["roomId", "userId"]),
+    .index("by_roomId_and_userId", ["roomId", "userId"]),
+
+  playerPresence: defineTable({
+    playerId: v.id("players"),
+    roomId: v.id("rooms"),
+    status: presenceStatusValidator,
+    disconnectedAt: v.optional(v.number()),
+  })
+    .index("by_playerId", ["playerId"])
+    .index("by_roomId", ["roomId"]),
+
+  playerHeartbeats: defineTable({
+    playerId: v.id("players"),
+    lastSeenAt: v.number(),
+  }).index("by_playerId", ["playerId"]),
 
   rounds: defineTable({
     roomId: v.id("rooms"),
-    roundNumber: v.number(),
-    state: v.union(
-      v.literal("pending"),
-      v.literal("active"),
-      v.literal("revealing"),
-      v.literal("complete"),
-    ),
-    correctAnswer: v.string(),
-    options: v.array(v.string()),
-    mediaUrl: v.string(),
-    mediaTitle: v.optional(v.string()),
-    mediaArtist: v.optional(v.string()),
-    attribution: v.optional(v.string()),
-    attributionUrl: v.optional(v.string()),
-    license: v.optional(v.string()),
-    licenseUrl: v.optional(v.string()),
+    ...roundContentValidator.fields,
+    state: roundStateValidator,
     startedAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
-    isFinal: v.boolean(),
-  })
-    .index("by_roomId", ["roomId"])
-    .index("by_roomId_roundNumber", ["roomId", "roundNumber"]),
+  }).index("by_roomId_and_roundNumber", ["roomId", "roundNumber"]),
 
   answers: defineTable({
     roundId: v.id("rounds"),
@@ -80,5 +79,5 @@ export default defineSchema({
     position: v.optional(v.number()),
   })
     .index("by_roundId", ["roundId"])
-    .index("by_roundId_playerId", ["roundId", "playerId"]),
+    .index("by_roundId_and_playerId", ["roundId", "playerId"]),
 });

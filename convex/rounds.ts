@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 
 import { endRoundHandler, endRevealHandler } from "./scheduling";
+import { listPlayersWithPresence } from "./presence";
+import { MAX_PLAYERS } from "./model";
 import { mutation, query } from "./_generated/server";
 
 export const get = query({
@@ -11,7 +13,7 @@ export const get = query({
   handler: async (ctx, args) => {
     const round = await ctx.db
       .query("rounds")
-      .withIndex("by_roomId_roundNumber", (q) =>
+      .withIndex("by_roomId_and_roundNumber", (q) =>
         q.eq("roomId", args.roomId).eq("roundNumber", args.roundNumber),
       )
       .unique();
@@ -51,7 +53,7 @@ export const answers = query({
     const allAnswers = await ctx.db
       .query("answers")
       .withIndex("by_roundId", (q) => q.eq("roundId", args.roundId))
-      .collect();
+      .take(MAX_PLAYERS);
 
     // while active, only reveal that a player answered (not what they picked)
     if (round.state === "active") {
@@ -90,14 +92,16 @@ export const submitAnswer = mutation({
 
     const player = await ctx.db
       .query("players")
-      .withIndex("by_roomId_userId", (q) => q.eq("roomId", round.roomId).eq("userId", args.userId))
+      .withIndex("by_roomId_and_userId", (q) =>
+        q.eq("roomId", round.roomId).eq("userId", args.userId),
+      )
       .unique();
 
     if (!player || player._id !== args.playerId) return { error: "player not found in room" };
 
     const existing = await ctx.db
       .query("answers")
-      .withIndex("by_roundId_playerId", (q) =>
+      .withIndex("by_roundId_and_playerId", (q) =>
         q.eq("roundId", args.roundId).eq("playerId", player._id),
       )
       .unique();
@@ -114,20 +118,17 @@ export const submitAnswer = mutation({
     });
 
     // check if all connected players have answered to end round early
-    const players = await ctx.db
-      .query("players")
-      .withIndex("by_roomId", (q) => q.eq("roomId", round.roomId))
-      .collect();
-
     const connectedPlayerIds = new Set(
-      players.filter((p) => p.status === "connected").map((p) => p._id),
+      (await listPlayersWithPresence(ctx.db, round.roomId))
+        .filter(({ status }) => status === "connected")
+        .map(({ player }) => player._id),
     );
     const connectedCount = connectedPlayerIds.size;
     if (connectedCount > 0) {
       const answers = await ctx.db
         .query("answers")
         .withIndex("by_roundId", (q) => q.eq("roundId", args.roundId))
-        .collect();
+        .take(MAX_PLAYERS);
 
       const connectedAnswerCount = answers.filter((answer) =>
         connectedPlayerIds.has(answer.playerId),

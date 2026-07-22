@@ -15,9 +15,14 @@ export async function prepareGame(access: { roomId: Id<"rooms">; userId: string 
   try {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
     if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL is not configured");
+    const serverSecret = process.env.PREPARATION_SECRET;
+    if (!serverSecret?.length) throw new Error("PREPARATION_SECRET is not configured");
 
     const client = new ConvexHttpClient(convexUrl);
-    const config = await client.query(api.rooms.preparationConfig, access);
+    const config = await client.action(api.preparationBridge.configForServer, {
+      ...access,
+      serverSecret,
+    });
     if (!config) throw new Error("room preparation is not authorized");
 
     await limitPreparation(access.userId);
@@ -38,7 +43,11 @@ export async function prepareGame(access: { roomId: Id<"rooms">; userId: string 
         break;
     }
 
-    const result = await client.mutation(api.rooms.completePreparation, { ...access, rounds });
+    const result = await client.action(api.preparationBridge.completeFromServer, {
+      ...access,
+      serverSecret,
+      rounds,
+    });
     if (result?.error) throw new Error(result.error);
     return { success: true as const };
   } catch (cause) {

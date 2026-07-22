@@ -15,7 +15,7 @@
   "dependencies": {
     "@mantine/hooks": "^8.3.18",
     "@vercel/analytics": "^2.0.1",
-    "convex": "^1.34.0",
+    "convex": "^1.42.3",
     "lucide-react": "^0.577.0",
     "next": "^15",
     "react": "^19",
@@ -26,10 +26,11 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "convex-test": "^0.0.44",
+    "convex-test": "^0.0.54",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "typescript": "^5",
+    "vite": "^8.1.5",
     "vitest": "^4.1.1"
   },
   "engines": {

@@ -2,7 +2,12 @@ import type { Doc } from "@convex/_generated/dataModel";
 
 export type PublicRoom = Omit<Doc<"rooms">, "hostId"> & { isHost: boolean };
 
-export type PublicPlayer = Omit<Doc<"players">, "userId"> & {
+export type PublicPlayer = Omit<
+  Doc<"players">,
+  "userId" | "status" | "lastSeenAt" | "disconnectedAt"
+> & {
+  status: "connected" | "disconnected";
+  disconnectedAt?: number;
   isCurrent: boolean;
   isHost: boolean;
 };

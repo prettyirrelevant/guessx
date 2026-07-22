@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import { describe, it, expect } from "vitest";
 import { convexTest, type TestConvex } from "convex-test";
 
@@ -56,7 +58,7 @@ async function setupActiveRound(t: Ctx, overrides?: Record<string, unknown>) {
     ...overrides,
   });
 
-  await t.mutation(api.rooms.completePreparation, {
+  await t.mutation(internal.preparation.complete, {
     roomId,
     userId: "user-host",
     rounds: Array.from({ length: totalRounds }, (_, i) => ({
@@ -317,7 +319,7 @@ describe("early round end", () => {
       hostAvatar: "avatar-1",
     });
 
-    await t.mutation(api.rooms.completePreparation, {
+    await t.mutation(internal.preparation.complete, {
       roomId,
       userId: "user-host",
       rounds: [
@@ -390,7 +392,7 @@ describe("early round end", () => {
       hostAvatar: "avatar-1",
     });
 
-    await t.mutation(api.rooms.completePreparation, {
+    await t.mutation(internal.preparation.complete, {
       roomId,
       userId: "user-host",
       rounds: [
@@ -472,7 +474,7 @@ describe("skip reveal", () => {
     const roundAfter = await t.run(async (ctx) => ctx.db.get(roundId));
     expect(roundAfter?.state).toBe("complete");
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await t.run(async (ctx) => ctx.db.get(roomId));
     expect(room?.currentRound).toBe(2);
 
     const round2 = await t.query(api.rounds.get, { roomId, roundNumber: 2 });
@@ -491,7 +493,7 @@ describe("skip reveal", () => {
     const roundAfter = await t.run(async (ctx) => ctx.db.get(round!._id));
     expect(roundAfter?.state).toBe("complete");
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await t.run(async (ctx) => ctx.db.get(roomId));
     expect(room?.state).toBe("finished");
   });
 
@@ -515,7 +517,7 @@ describe("skip reveal", () => {
     const result = await t.mutation(api.rounds.skipReveal, { roundId, userId: "user-host" });
     expect(result).toEqual({ error: "round not revealing" });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await t.run(async (ctx) => ctx.db.get(roomId));
     expect(room?.currentRound).toBe(2);
   });
 
