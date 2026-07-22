@@ -1,12 +1,35 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { convexTest, type TestConvex } from "convex-test";
 
 import schema from "./schema";
+import type { Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
 
 const modules = import.meta.glob("./**/*.ts");
 
 type Ctx = TestConvex<typeof schema>;
+
+async function getRoom(t: Ctx, roomId: Id<"rooms">) {
+  return t.run(async (ctx) => ctx.db.get(roomId));
+}
+
+async function listPlayers(t: Ctx, roomId: Id<"rooms">) {
+  return t.run(async (ctx) =>
+    ctx.db
+      .query("players")
+      .withIndex("by_roomId", (q) => q.eq("roomId", roomId))
+      .collect(),
+  );
+}
+
+async function disconnectPlayer(t: Ctx, playerId: Id<"players">) {
+  const player = await t.run(async (ctx) => ctx.db.get(playerId));
+  if (!player) throw new Error("player not found");
+  return t.mutation(api.players.markDisconnected, {
+    roomId: player.roomId,
+    userId: player.userId,
+  });
+}
 
 function makeHost(overrides?: Record<string, unknown>) {
   return {
@@ -36,6 +59,7 @@ async function createWaitingRoom(t: Ctx, overrides?: Record<string, unknown>) {
   const { roomId, roomCode } = await t.mutation(api.rooms.create, host);
   await t.mutation(api.rooms.completePreparation, {
     roomId,
+    userId: host.hostId as string,
     rounds: makeRounds(host.totalRounds as number),
   });
   return { roomId, roomCode };
@@ -51,18 +75,31 @@ async function addPlayer(t: Ctx, roomCode: string, userId: string) {
 }
 
 describe("room creation", () => {
+  it("does not expose player or host capabilities in public queries", async () => {
+    const t = convexTest(schema, modules);
+    const { roomCode, roomId } = await t.mutation(api.rooms.create, makeHost());
+
+    const room = await t.query(api.rooms.get, { roomCode });
+    const players = await t.query(api.players.list, { roomId, userId: "user-host" });
+
+    expect(room).not.toHaveProperty("hostId");
+    expect(players[0]).not.toHaveProperty("userId");
+    expect(players[0].isCurrent).toBe(true);
+    expect(players[0].isHost).toBe(true);
+  });
+
   it("creates a room in preparing state with host as first player", async () => {
     const t = convexTest(schema, modules);
     const { roomCode, roomId } = await t.mutation(api.rooms.create, makeHost());
 
     expect(roomCode).toMatch(/^[A-Z]{2}-\d{4}$/);
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("preparing");
     expect(room?.hostId).toBe("user-host");
     expect(room?.currentRound).toBe(0);
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     expect(players).toHaveLength(1);
     expect(players[0].userId).toBe("user-host");
     expect(players[0].status).toBe("connected");
@@ -71,12 +108,43 @@ describe("room creation", () => {
 });
 
 describe("room preparation", () => {
+  it("rejects preparation from a non-host", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId } = await t.mutation(api.rooms.create, makeHost());
+
+    const result = await t.mutation(api.rooms.completePreparation, {
+      roomId,
+      userId: "user-random",
+      rounds: makeRounds(3),
+    });
+
+    expect(result).toEqual({ error: "only the host can prepare" });
+    expect((await getRoom(t, roomId))?.state).toBe("preparing");
+  });
+
+  it("rejects preparation with missing or misnumbered rounds", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId } = await t.mutation(api.rooms.create, makeHost());
+    const rounds = makeRounds(2);
+    rounds[1].roundNumber = 3;
+
+    const result = await t.mutation(api.rooms.completePreparation, {
+      roomId,
+      userId: "user-host",
+      rounds,
+    });
+
+    expect(result).toEqual({ error: "invalid rounds" });
+    expect((await getRoom(t, roomId))?.state).toBe("preparing");
+  });
+
   it("transitions to waiting after rounds are inserted", async () => {
     const t = convexTest(schema, modules);
     const { roomId, roomCode } = await t.mutation(api.rooms.create, makeHost());
 
     await t.mutation(api.rooms.completePreparation, {
       roomId,
+      userId: "user-host",
       rounds: makeRounds(3),
     });
 
@@ -94,6 +162,7 @@ describe("room preparation", () => {
     // calling again while in "waiting" should not insert more rounds
     await t.mutation(api.rooms.completePreparation, {
       roomId,
+      userId: "user-host",
       rounds: makeRounds(5),
     });
 
@@ -108,12 +177,23 @@ describe("room preparation", () => {
     // room is still in "preparing", simulate the scheduled job firing
     await t.mutation(internal.scheduling.abandonIfStillPreparing, { roomId });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("abandoned");
   });
 });
 
 describe("joining rooms", () => {
+  it("allows an existing member to rejoin a full room", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId, roomCode } = await createWaitingRoom(t, { maxPlayers: 2 });
+    await addPlayer(t, roomCode, "user-2");
+
+    const result = await addPlayer(t, roomCode, "user-2");
+
+    expect(result).toMatchObject({ roomId, roomCode });
+    expect(await listPlayers(t, roomId)).toHaveLength(2);
+  });
+
   it("allows a player to join a waiting room", async () => {
     const t = convexTest(schema, modules);
     const { roomId, roomCode } = await createWaitingRoom(t);
@@ -122,7 +202,7 @@ describe("joining rooms", () => {
 
     expect(result).toMatchObject({ roomId, roomCode });
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     expect(players).toHaveLength(2);
   });
 
@@ -161,14 +241,14 @@ describe("joining rooms", () => {
     await addPlayer(t, roomCode, "user-2");
 
     // disconnect player 2
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     const player2 = players.find((p) => p.userId === "user-2")!;
-    await t.mutation(api.players.markDisconnected, { playerId: player2._id });
+    await disconnectPlayer(t, player2._id);
 
     // rejoin with same userId
     await addPlayer(t, roomCode, "user-2");
 
-    const afterRejoin = await t.query(api.players.list, { roomId });
+    const afterRejoin = await listPlayers(t, roomId);
     expect(afterRejoin).toHaveLength(2);
 
     const reconnected = afterRejoin.find((p) => p.userId === "user-2")!;
@@ -185,7 +265,7 @@ describe("starting a game", () => {
     const result = await t.mutation(api.rooms.start, { roomId, userId: "user-2" });
     expect(result).toEqual({ error: "only the host can start" });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("waiting");
   });
 
@@ -202,9 +282,9 @@ describe("starting a game", () => {
     const { roomId, roomCode } = await createWaitingRoom(t);
     await addPlayer(t, roomCode, "user-2");
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     const player2 = players.find((p) => p.userId === "user-2")!;
-    await t.mutation(api.players.markDisconnected, { playerId: player2._id });
+    await disconnectPlayer(t, player2._id);
 
     const result = await t.mutation(api.rooms.start, { roomId, userId: "user-host" });
     expect(result).toEqual({ error: "need at least 2 players" });
@@ -217,7 +297,7 @@ describe("starting a game", () => {
 
     await t.mutation(api.rooms.start, { roomId, userId: "user-host" });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("in_progress");
     expect(room?.currentRound).toBe(1);
 
@@ -246,7 +326,7 @@ describe("closing a room", () => {
 
     await t.mutation(api.rooms.close, { roomId, userId: "user-host" });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("abandoned");
   });
 
@@ -256,7 +336,7 @@ describe("closing a room", () => {
 
     await t.mutation(api.rooms.close, { roomId, userId: "user-random" });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("waiting");
   });
 
@@ -270,7 +350,7 @@ describe("closing a room", () => {
 
     await t.mutation(api.rooms.close, { roomId, userId: "user-host" });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("finished");
   });
 
@@ -282,7 +362,7 @@ describe("closing a room", () => {
 
     await t.mutation(api.rooms.close, { roomId, userId: "user-host" });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("abandoned");
   });
 });
@@ -294,7 +374,7 @@ describe("leaderboard", () => {
     await addPlayer(t, roomCode, "user-2");
     await addPlayer(t, roomCode, "user-3");
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     await t.run(async (ctx) => {
       await ctx.db.patch(players[0]._id, { totalScore: 5 });
       await ctx.db.patch(players[1]._id, { totalScore: 20 });
@@ -310,7 +390,7 @@ describe("leaderboard", () => {
     const { roomId, roomCode } = await createWaitingRoom(t);
     await addPlayer(t, roomCode, "user-2");
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     await t.run(async (ctx) => {
       await ctx.db.patch(players[0]._id, { totalScore: 10 });
       await ctx.db.patch(players[1]._id, { totalScore: 10 });
@@ -324,14 +404,30 @@ describe("leaderboard", () => {
 });
 
 describe("heartbeat", () => {
+  it("marks a player disconnected after their heartbeat expires", async () => {
+    vi.useFakeTimers();
+    try {
+      const t = convexTest(schema, modules);
+      const { roomId } = await t.mutation(api.rooms.create, makeHost());
+      const [host] = await listPlayers(t, roomId);
+
+      vi.advanceTimersByTime(30_000);
+      await t.finishInProgressScheduledFunctions();
+
+      expect((await t.run(async (ctx) => ctx.db.get(host._id)))?.status).toBe("disconnected");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("reconnects a disconnected player and clears disconnectedAt", async () => {
     const t = convexTest(schema, modules);
     const { roomId, roomCode } = await createWaitingRoom(t);
     await addPlayer(t, roomCode, "user-2");
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     const player2 = players.find((p) => p.userId === "user-2")!;
-    await t.mutation(api.players.markDisconnected, { playerId: player2._id });
+    await disconnectPlayer(t, player2._id);
 
     const disconnected = await t.run(async (ctx) => ctx.db.get(player2._id));
     expect(disconnected?.status).toBe("disconnected");
@@ -351,7 +447,7 @@ describe("heartbeat", () => {
     // should not throw
     await t.mutation(api.players.heartbeat, { roomId, userId: "ghost-user" });
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     expect(players).toHaveLength(1);
   });
 
@@ -359,17 +455,46 @@ describe("heartbeat", () => {
     const t = convexTest(schema, modules);
     const { roomId } = await createWaitingRoom(t);
 
-    const before = await t.query(api.players.list, { roomId });
+    const before = await listPlayers(t, roomId);
     const oldLastSeen = before[0].lastSeenAt;
 
     await t.mutation(api.players.heartbeat, { roomId, userId: "user-host" });
 
-    const after = await t.query(api.players.list, { roomId });
+    const after = await listPlayers(t, roomId);
     expect(after[0].lastSeenAt).toBeGreaterThanOrEqual(oldLastSeen!);
   });
 });
 
 describe("idle room abandonment", () => {
+  it("reschedules cleanup for the remaining idle interval after activity", async () => {
+    vi.useFakeTimers();
+    try {
+      const t = convexTest(schema, modules);
+      const roomId = await t.run(async (ctx) =>
+        ctx.db.insert("rooms", {
+          roomId: "AB-1234",
+          hostId: "user-host",
+          state: "waiting",
+          mode: "music",
+          maxPlayers: 4,
+          totalRounds: 3,
+          roundDuration: 15_000,
+          currentRound: 0,
+          lastActivityAt: Date.now() - 29 * 60_000,
+        }),
+      );
+
+      await t.mutation(internal.scheduling.abandonIdleRoom, { roomId });
+      expect((await getRoom(t, roomId))?.state).toBe("waiting");
+
+      vi.advanceTimersByTime(60_000);
+      await t.finishInProgressScheduledFunctions();
+      expect((await getRoom(t, roomId))?.state).toBe("abandoned");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("abandons a waiting room idle for 30+ minutes", async () => {
     const t = convexTest(schema, modules);
     const { roomId } = await createWaitingRoom(t);
@@ -380,7 +505,7 @@ describe("idle room abandonment", () => {
 
     await t.mutation(internal.scheduling.abandonIdleRoom, { roomId });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("abandoned");
   });
 
@@ -390,7 +515,7 @@ describe("idle room abandonment", () => {
 
     await t.mutation(internal.scheduling.abandonIdleRoom, { roomId });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("waiting");
   });
 
@@ -406,7 +531,7 @@ describe("idle room abandonment", () => {
 
     await t.mutation(internal.scheduling.abandonIdleRoom, { roomId });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("in_progress");
   });
 });
@@ -422,7 +547,7 @@ describe("finished room cleanup", () => {
 
     await t.mutation(internal.scheduling.cleanupFinishedRoom, { roomId });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("abandoned");
   });
 });
@@ -455,12 +580,12 @@ describe("play again", () => {
     expect(newRoom?.artist).toBe("123");
 
     // host is first player in new room
-    const players = await t.query(api.players.list, { roomId: newRoom!._id });
+    const players = await listPlayers(t, newRoom!._id);
     expect(players).toHaveLength(1);
     expect(players[0].userId).toBe("user-host");
 
     // old room has nextRoomId set
-    const oldRoom = await t.query(api.rooms.getById, { roomId });
+    const oldRoom = await getRoom(t, roomId);
     expect(oldRoom?.nextRoomId).toBe(result.roomCode);
   });
 
@@ -551,7 +676,7 @@ describe("play again", () => {
 
     expect(result).toMatchObject({ roomId, roomCode });
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     expect(players).toHaveLength(2);
   });
 });

@@ -4,6 +4,7 @@ import { defineSchema, defineTable } from "convex/server";
 export default defineSchema({
   rooms: defineTable({
     roomId: v.string(),
+    // Bearer capability for host-only operations. Never return this from public queries.
     hostId: v.string(),
     state: v.union(
       v.literal("preparing"),
@@ -30,6 +31,7 @@ export default defineSchema({
 
   players: defineTable({
     roomId: v.id("rooms"),
+    // Anonymous session capability. Public player queries must strip this field.
     userId: v.string(),
     displayName: v.string(),
     avatar: v.string(),

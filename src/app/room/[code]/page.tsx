@@ -20,11 +20,14 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const { code } = use(params);
   const { sessionId, displayName, avatar, setDisplayName, setAvatar, hasProfile, ready } =
     useSession();
-  const room = useQuery(api.rooms.get, { roomCode: code });
-  const players = useQuery(api.players.list, room?._id ? { roomId: room._id } : "skip");
+  const room = useQuery(api.rooms.get, { roomCode: code, userId: sessionId });
+  const players = useQuery(
+    api.players.list,
+    room?._id ? { roomId: room._id, userId: sessionId } : "skip",
+  );
   const joinRoom = useMutation(api.rooms.join);
 
-  const isPlayer = players?.some((p) => p.userId === sessionId) ?? false;
+  const isPlayer = players?.some((p) => p.isCurrent) ?? false;
   const [joinError, setJoinError] = useState("");
   const [joining, setJoining] = useState(false);
 
@@ -163,7 +166,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   }
 
   if (room.state === "preparing") {
-    return <PreparingScreen room={room} isHost={room.hostId === sessionId} sessionId={sessionId} />;
+    return <PreparingScreen room={room} isHost={room.isHost} sessionId={sessionId} />;
   }
 
   if (room.state === "waiting") {

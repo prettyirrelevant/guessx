@@ -47,7 +47,7 @@ async function createRoom(
     lastActivityAt: now,
   });
 
-  await ctx.db.insert("players", {
+  const hostPlayerId = await ctx.db.insert("players", {
     roomId,
     userId: args.hostId,
     displayName: args.hostName,
@@ -57,6 +57,11 @@ async function createRoom(
     streak: 0,
     joinedAt: now,
     lastSeenAt: now,
+  });
+
+  await ctx.scheduler.runAfter(30_000, internal.scheduling.expireHeartbeat, {
+    playerId: hostPlayerId,
+    expectedLastSeenAt: now,
   });
 
   await ctx.scheduler.runAfter(60_000, internal.scheduling.abandonIfStillPreparing, {
@@ -88,6 +93,7 @@ export const create = mutation({
 export const completePreparation = mutation({
   args: {
     roomId: v.id("rooms"),
+    userId: v.string(),
     rounds: v.array(
       v.object({
         roundNumber: v.number(),
@@ -102,7 +108,19 @@ export const completePreparation = mutation({
   },
   handler: async (ctx, args) => {
     const room = await ctx.db.get(args.roomId);
-    if (!room || room.state !== "preparing") return;
+    if (!room) return { error: "room not found" };
+    if (room.hostId !== args.userId) return { error: "only the host can prepare" };
+    if (room.state !== "preparing") return { error: "room not preparing" };
+
+    const validRounds =
+      args.rounds.length === room.totalRounds &&
+      args.rounds.every(
+        (round, index) =>
+          round.roundNumber === index + 1 &&
+          round.isFinal === (index === room.totalRounds - 1) &&
+          round.options.includes(round.correctAnswer),
+      );
+    if (!validRounds) return { error: "invalid rounds" };
 
     for (const round of args.rounds) {
       await ctx.db.insert("rounds", {
@@ -120,6 +138,8 @@ export const completePreparation = mutation({
     await ctx.scheduler.runAfter(30 * 60_000, internal.scheduling.abandonIdleRoom, {
       roomId: args.roomId,
     });
+
+    return { success: true };
   },
 });
 
@@ -160,20 +180,26 @@ export const join = mutation({
       .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
       .collect();
 
-    if (players.length >= room.maxPlayers) return { error: "room is full" };
-
     const existing = players.find((p) => p.userId === args.userId);
     if (existing) {
+      const now = Date.now();
       await ctx.db.patch(existing._id, {
         status: "connected",
         disconnectedAt: undefined,
-        lastSeenAt: Date.now(),
+        lastSeenAt: now,
       });
+      await ctx.scheduler.runAfter(30_000, internal.scheduling.expireHeartbeat, {
+        playerId: existing._id,
+        expectedLastSeenAt: now,
+      });
+      await ctx.db.patch(room._id, { lastActivityAt: now });
       return { roomId: room._id, roomCode: room.roomId };
     }
 
+    if (players.length >= room.maxPlayers) return { error: "room is full" };
+
     const now = Date.now();
-    await ctx.db.insert("players", {
+    const playerId = await ctx.db.insert("players", {
       roomId: room._id,
       userId: args.userId,
       displayName: args.displayName,
@@ -186,6 +212,10 @@ export const join = mutation({
     });
 
     await ctx.db.patch(room._id, { lastActivityAt: now });
+    await ctx.scheduler.runAfter(30_000, internal.scheduling.expireHeartbeat, {
+      playerId,
+      expectedLastSeenAt: now,
+    });
 
     return { roomId: room._id, roomCode: room.roomId };
   },
@@ -210,29 +240,32 @@ export const start = mutation({
 
     if (players.length < 2) return { error: "need at least 2 players" };
 
+    const firstRound = await ctx.db
+      .query("rounds")
+      .withIndex("by_roomId_roundNumber", (q) => q.eq("roomId", args.roomId).eq("roundNumber", 1))
+      .unique();
+
+    if (!firstRound) return { error: "first round not found" };
+
     const now = Date.now();
+    const introDuration = firstRound.isFinal ? 3_000 : 0;
+    const startedAt = now + introDuration;
+    const endsAt = startedAt + room.roundDuration;
     await ctx.db.patch(args.roomId, {
       state: "in_progress",
       currentRound: 1,
       lastActivityAt: now,
     });
 
-    const firstRound = await ctx.db
-      .query("rounds")
-      .withIndex("by_roomId_roundNumber", (q) => q.eq("roomId", args.roomId).eq("roundNumber", 1))
-      .unique();
+    await ctx.db.patch(firstRound._id, {
+      state: "active",
+      startedAt,
+      endsAt,
+    });
 
-    if (firstRound) {
-      await ctx.db.patch(firstRound._id, {
-        state: "active",
-        startedAt: now,
-        endsAt: now + room.roundDuration,
-      });
-
-      await ctx.scheduler.runAt(now + room.roundDuration, internal.scheduling.endRound, {
-        roundId: firstRound._id,
-      });
-    }
+    await ctx.scheduler.runAt(endsAt, internal.scheduling.endRound, {
+      roundId: firstRound._id,
+    });
 
     return { success: true };
   },
@@ -281,18 +314,24 @@ export const nextRoom = query({
 });
 
 export const get = query({
-  args: { roomCode: v.string() },
+  args: { roomCode: v.string(), userId: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const room = await ctx.db
       .query("rooms")
       .withIndex("by_roomId", (q) => q.eq("roomId", args.roomCode))
       .unique();
+    if (!room) return null;
+    const { hostId, ...safeRoom } = room;
+    return { ...safeRoom, isHost: args.userId === hostId };
   },
 });
 
 export const getById = query({
-  args: { roomId: v.id("rooms") },
+  args: { roomId: v.id("rooms"), userId: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.roomId);
+    const room = await ctx.db.get(args.roomId);
+    if (!room) return null;
+    const { hostId, ...safeRoom } = room;
+    return { ...safeRoom, isHost: args.userId === hostId };
   },
 });

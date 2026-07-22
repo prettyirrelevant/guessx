@@ -6,21 +6,21 @@ import Link from "next/link";
 import Image from "next/image";
 import { useQuery, useMutation } from "convex/react";
 
-import { Doc } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 
 import { getAvatarUrl, useSession } from "@/lib/session";
+import type { PublicRoom } from "@/lib/game-types";
 
 import styles from "./results-screen.module.css";
 
-export function ResultsScreen({ room, sessionId }: { room: Doc<"rooms">; sessionId: string }) {
-  const leaderboard = useQuery(api.players.leaderboard, { roomId: room._id });
+export function ResultsScreen({ room, sessionId }: { room: PublicRoom; sessionId: string }) {
+  const leaderboard = useQuery(api.players.leaderboard, { roomId: room._id, userId: sessionId });
   const nextRoomCode = useQuery(api.rooms.nextRoom, { roomId: room._id });
   const playAgain = useMutation(api.rooms.playAgain);
   const router = useRouter();
   const { displayName, avatar } = useSession();
   const [starting, setStarting] = useState(false);
-  const isHost = room.hostId === sessionId;
+  const isHost = room.isHost;
 
   if (!leaderboard) {
     return (
@@ -32,7 +32,7 @@ export function ResultsScreen({ room, sessionId }: { room: Doc<"rooms">; session
 
   const topScore = leaderboard[0]?.totalScore ?? 0;
   const winners = leaderboard.filter((p) => p.totalScore === topScore);
-  const isWinner = winners.some((w) => w.userId === sessionId);
+  const isWinner = winners.some((w) => w.isCurrent);
 
   return (
     <div className={styles.container}>
@@ -75,7 +75,7 @@ export function ResultsScreen({ room, sessionId }: { room: Doc<"rooms">; session
           {leaderboard.map((player, i) => (
             <div
               key={player._id}
-              className={`${styles.listRow} ${player.userId === sessionId ? styles.listYou : ""}`}
+              className={`${styles.listRow} ${player.isCurrent ? styles.listYou : ""}`}
             >
               <span className={styles.listRank}>#{i + 1}</span>
               <Image

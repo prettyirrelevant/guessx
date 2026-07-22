@@ -5,9 +5,9 @@ import { Copy, Check, Info, X } from "lucide-react";
 import { useMutation } from "convex/react";
 import { useClipboard, useWindowEvent } from "@mantine/hooks";
 
-import { Doc } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 
+import type { PublicRoom } from "@/lib/game-types";
 import {
   prepareMusicContent,
   preparePlaceContent,
@@ -29,7 +29,7 @@ export function PreparingScreen({
   isHost,
   sessionId,
 }: {
-  room: Doc<"rooms">;
+  room: PublicRoom;
   isHost: boolean;
   sessionId: string;
 }) {
@@ -65,6 +65,7 @@ export function PreparingScreen({
 
       await completePreparation({
         roomId: room._id,
+        userId: sessionId,
         rounds: content,
       });
     } catch {
@@ -78,6 +79,7 @@ export function PreparingScreen({
     room.actorCategory,
     room.continent,
     room.totalRounds,
+    sessionId,
     completePreparation,
   ]);
 

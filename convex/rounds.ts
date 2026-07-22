@@ -18,8 +18,8 @@ export const get = query({
 
     if (!round) return null;
 
-    // never expose the correct answer while the round is active
-    if (round.state === "active") {
+    // Never expose answers before the reveal begins.
+    if (round.state === "pending" || round.state === "active") {
       const { correctAnswer: _, ...safe } = round;
       return safe;
     }
@@ -68,6 +68,7 @@ export const submitAnswer = mutation({
   args: {
     roundId: v.id("rounds"),
     playerId: v.id("players"),
+    userId: v.string(),
     selectedOption: v.string(),
   },
   handler: async (ctx, args) => {
@@ -81,10 +82,21 @@ export const submitAnswer = mutation({
       return { error: "time's up" };
     }
 
+    if (!round.options.includes(args.selectedOption)) {
+      return { error: "invalid option" };
+    }
+
+    const player = await ctx.db
+      .query("players")
+      .withIndex("by_roomId_userId", (q) => q.eq("roomId", round.roomId).eq("userId", args.userId))
+      .unique();
+
+    if (!player || player._id !== args.playerId) return { error: "player not found in room" };
+
     const existing = await ctx.db
       .query("answers")
       .withIndex("by_roundId_playerId", (q) =>
-        q.eq("roundId", args.roundId).eq("playerId", args.playerId),
+        q.eq("roundId", args.roundId).eq("playerId", player._id),
       )
       .unique();
 
@@ -92,7 +104,7 @@ export const submitAnswer = mutation({
 
     await ctx.db.insert("answers", {
       roundId: args.roundId,
-      playerId: args.playerId,
+      playerId: player._id,
       selectedOption: args.selectedOption,
       correct: args.selectedOption === round.correctAnswer,
       submittedAt: now,
@@ -105,14 +117,20 @@ export const submitAnswer = mutation({
       .withIndex("by_roomId", (q) => q.eq("roomId", round.roomId))
       .collect();
 
-    const connectedCount = players.filter((p) => p.status === "connected").length;
+    const connectedPlayerIds = new Set(
+      players.filter((p) => p.status === "connected").map((p) => p._id),
+    );
+    const connectedCount = connectedPlayerIds.size;
     if (connectedCount > 0) {
-      const answerCount = await ctx.db
+      const answers = await ctx.db
         .query("answers")
         .withIndex("by_roundId", (q) => q.eq("roundId", args.roundId))
         .collect();
 
-      if (answerCount.length >= connectedCount) {
+      const connectedAnswerCount = answers.filter((answer) =>
+        connectedPlayerIds.has(answer.playerId),
+      ).length;
+      if (connectedAnswerCount >= connectedCount) {
         await endRoundHandler(ctx, args.roundId);
       }
     }

@@ -2,11 +2,39 @@ import { describe, it, expect } from "vitest";
 import { convexTest, type TestConvex } from "convex-test";
 
 import schema from "./schema";
+import type { Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
 
 const modules = import.meta.glob("./**/*.ts");
 
 type Ctx = TestConvex<typeof schema>;
+
+async function listPlayers(t: Ctx, roomId: Id<"rooms">) {
+  return t.run(async (ctx) =>
+    ctx.db
+      .query("players")
+      .withIndex("by_roomId", (q) => q.eq("roomId", roomId))
+      .collect(),
+  );
+}
+
+async function submitAnswer(
+  t: Ctx,
+  args: { roundId: Id<"rounds">; playerId: Id<"players">; selectedOption: string },
+) {
+  const player = await t.run(async (ctx) => ctx.db.get(args.playerId));
+  if (!player) throw new Error("player not found");
+  return t.mutation(api.rounds.submitAnswer, { ...args, userId: player.userId });
+}
+
+async function disconnectPlayer(t: Ctx, playerId: Id<"players">) {
+  const player = await t.run(async (ctx) => ctx.db.get(playerId));
+  if (!player) throw new Error("player not found");
+  return t.mutation(api.players.markDisconnected, {
+    roomId: player.roomId,
+    userId: player.userId,
+  });
+}
 
 const SONGS = [
   { answer: "Song A", options: ["Song A", "Song B", "Song C", "Song D"] },
@@ -30,6 +58,7 @@ async function setupActiveRound(t: Ctx, overrides?: Record<string, unknown>) {
 
   await t.mutation(api.rooms.completePreparation, {
     roomId,
+    userId: "user-host",
     rounds: Array.from({ length: totalRounds }, (_, i) => ({
       roundNumber: i + 1,
       correctAnswer: SONGS[i % SONGS.length].answer,
@@ -48,13 +77,34 @@ async function setupActiveRound(t: Ctx, overrides?: Record<string, unknown>) {
 
   await t.mutation(api.rooms.start, { roomId, userId: "user-host" });
 
-  const players = await t.query(api.players.list, { roomId });
+  const players = await listPlayers(t, roomId);
   const round = await t.query(api.rounds.get, { roomId, roundNumber: 1 });
 
   return { roomId, roomCode, players, roundId: round!._id };
 }
 
 describe("round queries", () => {
+  it("starts a single final round's answer timer after the intro", async () => {
+    const t = convexTest(schema, modules);
+    const beforeStart = Date.now();
+    const { roomId } = await setupActiveRound(t, { totalRounds: 1, roundDuration: 10_000 });
+
+    const round = await t.query(api.rounds.get, { roomId, roundNumber: 1 });
+
+    expect(round?.startedAt).toBeGreaterThanOrEqual(beforeStart + 3_000);
+    expect(round?.endsAt! - round?.startedAt!).toBe(10_000);
+  });
+
+  it("hides correctAnswer while a future round is pending", async () => {
+    const t = convexTest(schema, modules);
+    const { roomId } = await setupActiveRound(t);
+
+    const round = await t.query(api.rounds.get, { roomId, roundNumber: 2 });
+
+    expect(round?.state).toBe("pending");
+    expect(round).not.toHaveProperty("correctAnswer");
+  });
+
   it("hides correctAnswer while round is active", async () => {
     const t = convexTest(schema, modules);
     const { roomId } = await setupActiveRound(t);
@@ -103,12 +153,27 @@ describe("round queries", () => {
 });
 
 describe("answer submission", () => {
+  it("rejects a valid player ID paired with another player's capability", async () => {
+    const t = convexTest(schema, modules);
+    const { roundId, players } = await setupActiveRound(t);
+    const player2 = players.find((p) => p.userId === "user-2")!;
+
+    const result = await t.mutation(api.rounds.submitAnswer, {
+      roundId,
+      playerId: player2._id,
+      userId: "user-host",
+      selectedOption: "Song A",
+    });
+
+    expect(result).toEqual({ error: "player not found in room" });
+  });
+
   it("accepts a correct answer", async () => {
     const t = convexTest(schema, modules);
     const { roundId, players } = await setupActiveRound(t);
 
     const host = players.find((p) => p.userId === "user-host")!;
-    const result = await t.mutation(api.rounds.submitAnswer, {
+    const result = await submitAnswer(t, {
       roundId,
       playerId: host._id,
       selectedOption: "Song A",
@@ -122,7 +187,7 @@ describe("answer submission", () => {
     const { roundId, players } = await setupActiveRound(t);
 
     const host = players.find((p) => p.userId === "user-host")!;
-    const result = await t.mutation(api.rounds.submitAnswer, {
+    const result = await submitAnswer(t, {
       roundId,
       playerId: host._id,
       selectedOption: "Song B",
@@ -136,13 +201,13 @@ describe("answer submission", () => {
     const { roundId, players } = await setupActiveRound(t);
 
     const host = players.find((p) => p.userId === "user-host")!;
-    await t.mutation(api.rounds.submitAnswer, {
+    await submitAnswer(t, {
       roundId,
       playerId: host._id,
       selectedOption: "Song A",
     });
 
-    const result = await t.mutation(api.rounds.submitAnswer, {
+    const result = await submitAnswer(t, {
       roundId,
       playerId: host._id,
       selectedOption: "Song B",
@@ -160,7 +225,7 @@ describe("answer submission", () => {
     });
 
     const host = players.find((p) => p.userId === "user-host")!;
-    const result = await t.mutation(api.rounds.submitAnswer, {
+    const result = await submitAnswer(t, {
       roundId,
       playerId: host._id,
       selectedOption: "Song A",
@@ -179,7 +244,7 @@ describe("answer submission", () => {
     });
 
     const host = players.find((p) => p.userId === "user-host")!;
-    const result = await t.mutation(api.rounds.submitAnswer, {
+    const result = await submitAnswer(t, {
       roundId,
       playerId: host._id,
       selectedOption: "Song A",
@@ -195,7 +260,7 @@ describe("answer visibility", () => {
     const { roundId, players } = await setupActiveRound(t);
 
     const host = players.find((p) => p.userId === "user-host")!;
-    await t.mutation(api.rounds.submitAnswer, {
+    await submitAnswer(t, {
       roundId,
       playerId: host._id,
       selectedOption: "Song A",
@@ -213,7 +278,7 @@ describe("answer visibility", () => {
     const { roundId, players } = await setupActiveRound(t);
 
     const host = players.find((p) => p.userId === "user-host")!;
-    await t.mutation(api.rounds.submitAnswer, {
+    await submitAnswer(t, {
       roundId,
       playerId: host._id,
       selectedOption: "Song A",
@@ -239,12 +304,12 @@ describe("early round end", () => {
     const host = players.find((p) => p.userId === "user-host")!;
     const player2 = players.find((p) => p.userId === "user-2")!;
 
-    await t.mutation(api.rounds.submitAnswer, {
+    await submitAnswer(t, {
       roundId,
       playerId: host._id,
       selectedOption: "Song A",
     });
-    await t.mutation(api.rounds.submitAnswer, {
+    await submitAnswer(t, {
       roundId,
       playerId: player2._id,
       selectedOption: "Song B",
@@ -268,6 +333,7 @@ describe("early round end", () => {
 
     await t.mutation(api.rooms.completePreparation, {
       roomId,
+      userId: "user-host",
       rounds: [
         {
           roundNumber: 1,
@@ -308,15 +374,15 @@ describe("early round end", () => {
 
     await t.mutation(api.rooms.start, { roomId, userId: "user-host" });
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     const round = await t.query(api.rounds.get, { roomId, roundNumber: 1 });
 
-    await t.mutation(api.rounds.submitAnswer, {
+    await submitAnswer(t, {
       roundId: round!._id,
       playerId: players.find((p) => p.userId === "user-host")!._id,
       selectedOption: "Song A",
     });
-    await t.mutation(api.rounds.submitAnswer, {
+    await submitAnswer(t, {
       roundId: round!._id,
       playerId: players.find((p) => p.userId === "user-2")!._id,
       selectedOption: "Song B",
@@ -340,6 +406,7 @@ describe("early round end", () => {
 
     await t.mutation(api.rooms.completePreparation, {
       roomId,
+      userId: "user-host",
       rounds: [
         {
           roundNumber: 1,
@@ -380,20 +447,20 @@ describe("early round end", () => {
 
     await t.mutation(api.rooms.start, { roomId, userId: "user-host" });
 
-    const players = await t.query(api.players.list, { roomId });
+    const players = await listPlayers(t, roomId);
     const round = await t.query(api.rounds.get, { roomId, roundNumber: 1 });
 
     // disconnect player 3
     const player3 = players.find((p) => p.userId === "user-3")!;
-    await t.mutation(api.players.markDisconnected, { playerId: player3._id });
+    await disconnectPlayer(t, player3._id);
 
     // only 2 connected, both answer
-    await t.mutation(api.rounds.submitAnswer, {
+    await submitAnswer(t, {
       roundId: round!._id,
       playerId: players.find((p) => p.userId === "user-host")!._id,
       selectedOption: "Song A",
     });
-    await t.mutation(api.rounds.submitAnswer, {
+    await submitAnswer(t, {
       roundId: round!._id,
       playerId: players.find((p) => p.userId === "user-2")!._id,
       selectedOption: "Song B",

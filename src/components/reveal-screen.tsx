@@ -10,6 +10,7 @@ import { Doc } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 
 import { getAvatarUrl } from "@/lib/session";
+import type { PublicPlayer, PublicRoom } from "@/lib/game-types";
 
 import styles from "./reveal-screen.module.css";
 
@@ -18,18 +19,20 @@ export function RevealScreen({
   round,
   players,
   currentPlayer,
+  sessionId,
 }: {
-  room: Doc<"rooms">;
+  room: PublicRoom;
   round: Doc<"rounds">;
-  players: Doc<"players">[];
-  currentPlayer: Doc<"players">;
+  players: PublicPlayer[];
+  currentPlayer: PublicPlayer;
+  sessionId: string;
 }) {
   const answers = useQuery(api.rounds.answers, { roundId: round._id });
   const skipReveal = useMutation(api.rounds.skipReveal);
   const [countdown, setCountdown] = useState(10);
   const [showSkip, setShowSkip] = useState(false);
   const [skipping, setSkipping] = useState(false);
-  const isHost = currentPlayer.userId === room.hostId;
+  const isHost = room.isHost;
 
   const { start: startCountdown, stop: stopCountdown } = useInterval(
     () => setCountdown((prev) => (prev > 0 ? prev - 1 : 0)),
@@ -66,15 +69,7 @@ export function RevealScreen({
     clearSkipDelay,
   ]);
 
-  if (!answers || !("selectedOption" in (answers[0] ?? {}))) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.loading}>revealing answers...</div>
-      </div>
-    );
-  }
-
-  const fullAnswers = answers as Doc<"answers">[];
+  const fullAnswers = useMemo(() => (answers ?? []) as Doc<"answers">[], [answers]);
   const correctAnswer = round.correctAnswer;
 
   // build player results sorted by position (correct first, then wrong, then no answer)
@@ -100,6 +95,14 @@ export function RevealScreen({
     () => players.toSorted((a, b) => b.totalScore - a.totalScore),
     [players],
   );
+
+  if (answers === undefined) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.loading}>revealing answers...</div>
+      </div>
+    );
+  }
 
   const answerTitle =
     room.mode === "music" && round.mediaTitle
@@ -227,7 +230,7 @@ export function RevealScreen({
             disabled={skipping}
             onClick={() => {
               setSkipping(true);
-              skipReveal({ roundId: round._id, userId: currentPlayer.userId });
+              skipReveal({ roundId: round._id, userId: sessionId });
             }}
           >
             {round.isFinal ? "skip to results" : "skip to next round"}

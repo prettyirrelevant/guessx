@@ -7,6 +7,7 @@ import { internal } from "./_generated/api";
 const BASE_POINTS = [10, 7, 5, 3];
 const STREAK_THRESHOLD = 3;
 const STREAK_BONUS = 2;
+const IDLE_ROOM_TIMEOUT = 30 * 60_000;
 
 export const abandonIfStillPreparing = internalMutation({
   args: { roomId: v.id("rooms") },
@@ -24,9 +25,15 @@ export const abandonIdleRoom = internalMutation({
     const room = await ctx.db.get(args.roomId);
     if (!room || room.state !== "waiting") return;
 
-    if (Date.now() - room.lastActivityAt >= 30 * 60_000) {
+    const remaining = IDLE_ROOM_TIMEOUT - (Date.now() - room.lastActivityAt);
+    if (remaining <= 0) {
       await ctx.db.patch(args.roomId, { state: "abandoned" });
+      return;
     }
+
+    await ctx.scheduler.runAfter(remaining, internal.scheduling.abandonIdleRoom, {
+      roomId: args.roomId,
+    });
   },
 });
 
@@ -149,10 +156,13 @@ export async function endRevealHandler(ctx: MutationCtx, roundId: Id<"rounds">) 
   }
 
   const now = Date.now();
+  const introDuration = nextRound.isFinal ? 3_000 : 0;
+  const startedAt = now + introDuration;
+  const endsAt = startedAt + room.roundDuration;
   await ctx.db.patch(nextRound._id, {
     state: "active",
-    startedAt: now,
-    endsAt: now + room.roundDuration,
+    startedAt,
+    endsAt,
   });
 
   await ctx.db.patch(room._id, {
@@ -160,7 +170,7 @@ export async function endRevealHandler(ctx: MutationCtx, roundId: Id<"rounds">) 
     lastActivityAt: now,
   });
 
-  await ctx.scheduler.runAt(now + room.roundDuration, internal.scheduling.endRound, {
+  await ctx.scheduler.runAt(endsAt, internal.scheduling.endRound, {
     roundId: nextRound._id,
   });
 }
@@ -201,6 +211,68 @@ export const checkDisconnect = internalMutation({
         await ctx.db.patch(args.roomId, { hostId: nextHost.userId });
       }
     }
+  },
+});
+
+export const expireHeartbeat = internalMutation({
+  args: {
+    playerId: v.id("players"),
+    expectedLastSeenAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const player = await ctx.db.get(args.playerId);
+    if (
+      !player ||
+      player.status !== "connected" ||
+      player.lastSeenAt !== args.expectedLastSeenAt ||
+      Date.now() - args.expectedLastSeenAt < 30_000
+    ) {
+      return;
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(player._id, {
+      status: "disconnected",
+      disconnectedAt: now,
+    });
+
+    const room = await ctx.db.get(player.roomId);
+    if (room?.state === "in_progress") {
+      const round = await ctx.db
+        .query("rounds")
+        .withIndex("by_roomId_roundNumber", (q) =>
+          q.eq("roomId", room._id).eq("roundNumber", room.currentRound),
+        )
+        .unique();
+      if (round?.state === "active") {
+        const [players, answers] = await Promise.all([
+          ctx.db
+            .query("players")
+            .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
+            .collect(),
+          ctx.db
+            .query("answers")
+            .withIndex("by_roundId", (q) => q.eq("roundId", round._id))
+            .collect(),
+        ]);
+        const connectedPlayerIds = new Set(
+          players
+            .filter((candidate) => candidate.status === "connected")
+            .map((candidate) => candidate._id),
+        );
+        const connectedAnswerCount = answers.filter((answer) =>
+          connectedPlayerIds.has(answer.playerId),
+        ).length;
+        if (connectedPlayerIds.size > 0 && connectedAnswerCount >= connectedPlayerIds.size) {
+          await endRoundHandler(ctx, round._id);
+        }
+      }
+    }
+
+    await ctx.scheduler.runAfter(45_000, internal.scheduling.checkDisconnect, {
+      playerId: player._id,
+      roomId: player.roomId,
+    });
   },
 });
 

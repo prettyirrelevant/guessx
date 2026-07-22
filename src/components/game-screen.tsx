@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useQuery, useMutation } from "convex/react";
-import { useTimeout } from "@mantine/hooks";
 
 import { Doc, Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 
 import { getAvatarUrl } from "@/lib/session";
+import type { PublicPlayer, PublicRoom } from "@/lib/game-types";
 
 import { TimerBar } from "./timer-bar";
 import { RevealScreen } from "./reveal-screen";
@@ -16,14 +16,14 @@ import { AudioPlayer } from "./audio-player";
 
 import styles from "./game-screen.module.css";
 
-export function GameScreen({ room, sessionId }: { room: Doc<"rooms">; sessionId: string }) {
+export function GameScreen({ room, sessionId }: { room: PublicRoom; sessionId: string }) {
   const round = useQuery(api.rounds.get, {
     roomId: room._id,
     roundNumber: room.currentRound,
   });
 
-  const players = useQuery(api.players.list, { roomId: room._id });
-  const currentPlayer = players?.find((p) => p.userId === sessionId);
+  const players = useQuery(api.players.list, { roomId: room._id, userId: sessionId });
+  const currentPlayer = players?.find((p) => p.isCurrent);
 
   if (!round || !players || !currentPlayer) {
     return (
@@ -40,11 +40,20 @@ export function GameScreen({ room, sessionId }: { room: Doc<"rooms">; sessionId:
         round={round as Doc<"rounds">}
         players={players}
         currentPlayer={currentPlayer}
+        sessionId={sessionId}
       />
     );
   }
 
-  return <ActiveRound room={room} round={round} players={players} currentPlayer={currentPlayer} />;
+  return (
+    <ActiveRound
+      room={room}
+      round={round}
+      players={players}
+      currentPlayer={currentPlayer}
+      sessionId={sessionId}
+    />
+  );
 }
 
 function ActiveRound({
@@ -52,8 +61,9 @@ function ActiveRound({
   round,
   players,
   currentPlayer,
+  sessionId,
 }: {
-  room: Doc<"rooms">;
+  room: PublicRoom;
   round: {
     _id: Id<"rounds">;
     options: string[];
@@ -66,8 +76,9 @@ function ActiveRound({
     roundNumber: number;
     state: string;
   };
-  players: Doc<"players">[];
-  currentPlayer: Doc<"players">;
+  players: PublicPlayer[];
+  currentPlayer: PublicPlayer;
+  sessionId: string;
 }) {
   const answers = useQuery(api.rounds.answers, { roundId: round._id });
   const submitAnswer = useMutation(api.rounds.submitAnswer);
@@ -75,11 +86,8 @@ function ActiveRound({
   const [selected, setSelected] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
   const lockedRef = useRef(false);
-  const [showFinalIntro, setShowFinalIntro] = useState(round.isFinal);
-
-  const { start: startFinalIntro, clear: clearFinalIntro } = useTimeout(
-    () => setShowFinalIntro(false),
-    3000,
+  const [showFinalIntro, setShowFinalIntro] = useState(
+    () => round.isFinal && Date.now() < (round.startedAt ?? 0),
   );
 
   // reset state on new round
@@ -87,12 +95,12 @@ function ActiveRound({
     setSelected(null);
     setLocked(false);
     lockedRef.current = false;
-    if (round.isFinal) {
-      setShowFinalIntro(true);
-      startFinalIntro();
-    }
-    return clearFinalIntro;
-  }, [round._id, round.isFinal, startFinalIntro, clearFinalIntro]);
+    const remainingIntro = round.isFinal ? Math.max(0, (round.startedAt ?? 0) - Date.now()) : 0;
+    setShowFinalIntro(remainingIntro > 0);
+    if (remainingIntro === 0) return;
+    const timeout = window.setTimeout(() => setShowFinalIntro(false), remainingIntro);
+    return () => window.clearTimeout(timeout);
+  }, [round._id, round.isFinal, round.startedAt]);
 
   const handleSelect = useCallback(
     async (option: string) => {
@@ -105,10 +113,11 @@ function ActiveRound({
       await submitAnswer({
         roundId: round._id,
         playerId: currentPlayer._id,
+        userId: sessionId,
         selectedOption: option,
       });
     },
-    [round._id, currentPlayer._id, submitAnswer],
+    [round._id, currentPlayer._id, sessionId, submitAnswer],
   );
 
   const connectedPlayers = useMemo(

@@ -9,6 +9,28 @@ const modules = import.meta.glob("./**/*.ts");
 
 type Ctx = TestConvex<typeof schema>;
 
+async function listPlayers(t: Ctx, roomId: Id<"rooms">) {
+  return t.run(async (ctx) =>
+    ctx.db
+      .query("players")
+      .withIndex("by_roomId", (q) => q.eq("roomId", roomId))
+      .collect(),
+  );
+}
+
+async function getRoom(t: Ctx, roomId: Id<"rooms">) {
+  return t.run(async (ctx) => ctx.db.get(roomId));
+}
+
+async function submitAnswer(
+  t: Ctx,
+  args: { roundId: Id<"rounds">; playerId: Id<"players">; selectedOption: string },
+) {
+  const player = await t.run(async (ctx) => ctx.db.get(args.playerId));
+  if (!player) throw new Error("player not found");
+  return t.mutation(api.rounds.submitAnswer, { ...args, userId: player.userId });
+}
+
 async function setupGame(
   t: Ctx,
   opts: { playerCount?: number; totalRounds?: number; roundDuration?: number } = {},
@@ -33,7 +55,7 @@ async function setupGame(
     isFinal: i === totalRounds - 1,
   }));
 
-  await t.mutation(api.rooms.completePreparation, { roomId, rounds });
+  await t.mutation(api.rooms.completePreparation, { roomId, userId: "user-0", rounds });
 
   for (let i = 1; i < playerCount; i++) {
     await t.mutation(api.rooms.join, {
@@ -46,7 +68,7 @@ async function setupGame(
 
   await t.mutation(api.rooms.start, { roomId, userId: "user-0" });
 
-  const players = await t.query(api.players.list, { roomId });
+  const players = await listPlayers(t, roomId);
   const round = await t.query(api.rounds.get, { roomId, roundNumber: 1 });
 
   return { roomId, players, roundId: round!._id };
@@ -450,7 +472,7 @@ describe("round progression", () => {
     const round1After = await t.run(async (ctx) => ctx.db.get(roundId));
     expect(round1After?.state).toBe("complete");
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.currentRound).toBe(2);
     expect(room?.state).toBe("in_progress");
 
@@ -467,7 +489,7 @@ describe("round progression", () => {
     await t.mutation(internal.scheduling.endRound, { roundId: round!._id });
     await t.mutation(internal.scheduling.endReveal, { roundId: round!._id });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("finished");
   });
 
@@ -478,12 +500,12 @@ describe("round progression", () => {
     await t.mutation(internal.scheduling.endRound, { roundId });
     await t.mutation(internal.scheduling.endReveal, { roundId });
 
-    const roomAfterFirst = await t.query(api.rooms.getById, { roomId });
+    const roomAfterFirst = await getRoom(t, roomId);
 
     // second call should no-op since round is now "complete"
     await t.mutation(internal.scheduling.endReveal, { roundId });
 
-    const roomAfterSecond = await t.query(api.rooms.getById, { roomId });
+    const roomAfterSecond = await getRoom(t, roomId);
     expect(roomAfterSecond?.currentRound).toBe(roomAfterFirst?.currentRound);
   });
 });
@@ -503,7 +525,7 @@ describe("disconnect handling", () => {
       roomId,
     });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.hostId).not.toBe("user-0");
     expect(room?.state).not.toBe("abandoned");
   });
@@ -524,7 +546,7 @@ describe("disconnect handling", () => {
       roomId,
     });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.state).toBe("abandoned");
   });
 
@@ -546,7 +568,7 @@ describe("disconnect handling", () => {
       roomId,
     });
 
-    const room = await t.query(api.rooms.getById, { roomId });
+    const room = await getRoom(t, roomId);
     expect(room?.hostId).toBe("user-0");
     expect(room?.state).toBe("in_progress");
   });

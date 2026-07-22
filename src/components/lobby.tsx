@@ -6,15 +6,15 @@ import { Copy, Check, Shield } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { useClipboard } from "@mantine/hooks";
 
-import { Doc } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 
 import { getAvatarUrl } from "@/lib/session";
+import type { PublicRoom } from "@/lib/game-types";
 
 import styles from "./lobby.module.css";
 
-export function Lobby({ room, sessionId }: { room: Doc<"rooms">; sessionId: string }) {
-  const players = useQuery(api.players.list, { roomId: room._id });
+export function Lobby({ room, sessionId }: { room: PublicRoom; sessionId: string }) {
+  const players = useQuery(api.players.list, { roomId: room._id, userId: sessionId });
   const startGame = useMutation(api.rooms.start);
   const closeRoom = useMutation(api.rooms.close);
   const clipboard = useClipboard({ timeout: 2000 });
@@ -37,7 +37,7 @@ export function Lobby({ room, sessionId }: { room: Doc<"rooms">; sessionId: stri
     });
   }, [mediaUrls]);
 
-  const isHost = room.hostId === sessionId;
+  const isHost = room.isHost;
   const playerCount = players?.length ?? 0;
   const canStart = isHost && playerCount >= 2;
 
@@ -108,7 +108,7 @@ export function Lobby({ room, sessionId }: { room: Doc<"rooms">; sessionId: stri
                   height={28}
                 />
                 <span className={styles.playerName}>{player.displayName}</span>
-                {player.userId === room.hostId && <Shield size={18} className={styles.hostIcon} />}
+                {player.isHost && <Shield size={18} className={styles.hostIcon} />}
               </div>
             ))}
 
