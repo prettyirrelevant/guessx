@@ -151,7 +151,12 @@ describe("room preparation", () => {
     const room = await t.query(api.rooms.get, { roomCode });
     expect(room?.state).toBe("waiting");
 
-    const round = await t.query(api.rounds.get, { roomId, roundNumber: 1 });
+    const round = await t.run(async (ctx) =>
+      ctx.db
+        .query("rounds")
+        .withIndex("by_roomId_roundNumber", (q) => q.eq("roomId", roomId).eq("roundNumber", 1))
+        .unique(),
+    );
     expect(round?.state).toBe("pending");
   });
 
@@ -166,8 +171,13 @@ describe("room preparation", () => {
       rounds: makeRounds(5),
     });
 
-    const urls = await t.query(api.rounds.mediaUrls, { roomId });
-    expect(urls).toHaveLength(3);
+    const rounds = await t.run(async (ctx) =>
+      ctx.db
+        .query("rounds")
+        .withIndex("by_roomId", (q) => q.eq("roomId", roomId))
+        .collect(),
+    );
+    expect(rounds).toHaveLength(3);
   });
 
   it("abandons room if still preparing after scheduled timeout", async () => {

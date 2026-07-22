@@ -166,7 +166,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   }
 
   if (room.state === "preparing") {
-    return <PreparingScreen room={room} isHost={room.isHost} sessionId={sessionId} />;
+    return <PreparingScreen room={room} sessionId={sessionId} />;
   }
 
   if (room.state === "waiting") {

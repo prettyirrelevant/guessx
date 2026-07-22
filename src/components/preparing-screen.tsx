@@ -8,12 +8,7 @@ import { useClipboard, useWindowEvent } from "@mantine/hooks";
 import { api } from "@convex/_generated/api";
 
 import type { PublicRoom } from "@/lib/game-types";
-import {
-  prepareMusicContent,
-  preparePlaceContent,
-  prepareActorContent,
-  prepareFlagContent,
-} from "@/lib/actions";
+import { prepareGame } from "@/lib/actions";
 
 import styles from "./preparing-screen.module.css";
 
@@ -24,19 +19,10 @@ const STEPS: Record<string, string[]> = {
   flag: ["setting up your room", "raising the flags", "preparing the choices"],
 };
 
-export function PreparingScreen({
-  room,
-  isHost,
-  sessionId,
-}: {
-  room: PublicRoom;
-  isHost: boolean;
-  sessionId: string;
-}) {
+export function PreparingScreen({ room, sessionId }: { room: PublicRoom; sessionId: string }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState("");
   const clipboard = useClipboard({ timeout: 2000 });
-  const completePreparation = useMutation(api.rooms.completePreparation);
   const closeRoom = useMutation(api.rooms.close);
 
   const steps = STEPS[room.mode];
@@ -49,47 +35,23 @@ export function PreparingScreen({
 
       setCurrentStep(1);
 
-      let content;
-      if (room.mode === "music") {
-        content = await prepareMusicContent(room.artist ?? "3933641", room.totalRounds);
-      } else if (room.mode === "actor") {
-        content = await prepareActorContent(room.actorCategory ?? "hollywood", room.totalRounds);
-      } else if (room.mode === "flag") {
-        content = await prepareFlagContent(room.continent ?? "africa", room.totalRounds);
-      } else {
-        content = await preparePlaceContent(room.country ?? "US", room.totalRounds);
-      }
+      const result = await prepareGame({ roomId: room._id, userId: sessionId });
+      if ("error" in result) throw new Error(result.error);
 
       setCurrentStep(2);
       await new Promise((r) => setTimeout(r, 500));
-
-      await completePreparation({
-        roomId: room._id,
-        userId: sessionId,
-        rounds: content,
-      });
-    } catch {
-      setError("failed to set up the room. try again.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "failed to set up the room. try again.");
     }
-  }, [
-    room._id,
-    room.mode,
-    room.artist,
-    room.country,
-    room.actorCategory,
-    room.continent,
-    room.totalRounds,
-    sessionId,
-    completePreparation,
-  ]);
+  }, [room._id, sessionId]);
 
   useEffect(() => {
-    if (!isHost) return;
+    if (!room.isHost) return;
     prepare();
-  }, [isHost, prepare]);
+  }, [room.isHost, prepare]);
 
   useWindowEvent("beforeunload", (e) => {
-    if (isHost) e.preventDefault();
+    if (room.isHost) e.preventDefault();
   });
 
   const handleCopy = () => {
@@ -97,7 +59,12 @@ export function PreparingScreen({
   };
 
   const handleCancel = async () => {
-    await closeRoom({ roomId: room._id, userId: sessionId });
+    try {
+      const result = await closeRoom({ roomId: room._id, userId: sessionId });
+      if (result.error) setError(result.error);
+    } catch {
+      setError("could not cancel the room. try again.");
+    }
   };
 
   const failedStep = error ? currentStep : -1;
@@ -105,10 +72,13 @@ export function PreparingScreen({
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <button className={styles.roomCode} onClick={handleCopy} title="click to copy">
+        <button className={styles.roomCode} onClick={handleCopy} aria-label="copy room invite link">
           {room.roomId}
           {clipboard.copied ? <Check size={20} /> : <Copy size={20} />}
         </button>
+        <span className={styles.srOnly} aria-live="polite">
+          {clipboard.copied ? "invite link copied" : ""}
+        </span>
         <p className={styles.hint}>share this code with your friends</p>
 
         <div className={styles.steps}>
@@ -139,8 +109,8 @@ export function PreparingScreen({
 
               {i === failedStep && (
                 <div className={styles.stepError}>
-                  <p>{error}</p>
-                  {isHost && (
+                  <p role="alert">{error}</p>
+                  {room.isHost && (
                     <button className={styles.retryBtn} onClick={prepare}>
                       try again
                     </button>
@@ -151,21 +121,21 @@ export function PreparingScreen({
           ))}
         </div>
 
-        {!error && isHost && (
+        {!error && room.isHost && (
           <div className={styles.notice}>
             <Info size={16} className={styles.noticeIcon} />
             <span>keep this tab open until setup is complete</span>
           </div>
         )}
 
-        {!error && !isHost && (
+        {!error && !room.isHost && (
           <div className={styles.notice}>
             <Info size={16} className={styles.noticeIcon} />
             <span>waiting for the host to finish setting up...</span>
           </div>
         )}
 
-        {isHost && (
+        {room.isHost && (
           <button className={styles.cancelBtn} onClick={handleCancel}>
             cancel
           </button>

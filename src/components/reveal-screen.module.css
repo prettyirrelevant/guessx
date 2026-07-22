@@ -79,6 +79,13 @@
   cursor: not-allowed;
 }
 
+.skipError {
+  margin-top: 8px;
+  color: var(--accent3);
+  font-size: 12px;
+  text-align: center;
+}
+
 /* answer banner */
 .answerReveal {
   text-align: center;
@@ -106,6 +113,19 @@
   font-weight: 700;
   font-size: 18px;
   color: var(--accent);
+}
+
+.attribution {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.attribution a {
+  color: inherit;
+  text-underline-offset: 2px;
 }
 
 /* player results */

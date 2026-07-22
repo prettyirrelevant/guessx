@@ -32,6 +32,7 @@ export function RevealScreen({
   const [countdown, setCountdown] = useState(10);
   const [showSkip, setShowSkip] = useState(false);
   const [skipping, setSkipping] = useState(false);
+  const [skipError, setSkipError] = useState("");
   const isHost = room.isHost;
 
   const { start: startCountdown, stop: stopCountdown } = useInterval(
@@ -49,6 +50,7 @@ export function RevealScreen({
       stopCountdown();
       setShowSkip(false);
       setSkipping(false);
+      setSkipError("");
       clearSkipDelay();
       return;
     }
@@ -127,6 +129,29 @@ export function RevealScreen({
       <div className={styles.answerReveal}>
         <span className={styles.answerLabel}>the answer</span>
         <span className={styles.answerTitle}>{answerTitle}</span>
+        {(round.attribution || round.license) && (
+          <span className={styles.attribution}>
+            {round.attributionUrl ? (
+              <a href={round.attributionUrl} target="_blank" rel="noreferrer">
+                {round.attribution}
+              </a>
+            ) : (
+              round.attribution
+            )}
+            {round.license && (
+              <>
+                {" · "}
+                {round.licenseUrl ? (
+                  <a href={round.licenseUrl} target="_blank" rel="noreferrer">
+                    {round.license}
+                  </a>
+                ) : (
+                  round.license
+                )}
+              </>
+            )}
+          </span>
+        )}
       </div>
 
       <div className={styles.playerResults}>
@@ -228,13 +253,28 @@ export function RevealScreen({
           <button
             className={styles.skipBtn}
             disabled={skipping}
-            onClick={() => {
+            onClick={async () => {
               setSkipping(true);
-              skipReveal({ roundId: round._id, userId: sessionId });
+              setSkipError("");
+              try {
+                const result = await skipReveal({ roundId: round._id, userId: sessionId });
+                if (result?.error) {
+                  setSkipping(false);
+                  setSkipError(result.error);
+                }
+              } catch {
+                setSkipping(false);
+                setSkipError("could not skip. try again.");
+              }
             }}
           >
             {round.isFinal ? "skip to results" : "skip to next round"}
           </button>
+          {skipError && (
+            <p className={styles.skipError} role="alert">
+              {skipError}
+            </p>
+          )}
         </div>
       )}
     </div>

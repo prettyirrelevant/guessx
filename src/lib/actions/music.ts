@@ -1,6 +1,10 @@
-"use server";
-
-import { shuffle, fetchJson, type RoundContent } from "./shared";
+import {
+  assertTotalRounds,
+  fetchJson,
+  mapWithConcurrency,
+  shuffle,
+  type RoundContent,
+} from "./shared";
 
 interface Track {
   id: number;
@@ -9,38 +13,62 @@ interface Track {
   preview: string | null;
 }
 
-export async function searchArtists(
+export async function searchArtistsFromDeezer(
   query: string,
 ): Promise<{ id: number; name: string; picture_small: string }[]> {
-  if (!query.trim()) return [];
+  const normalizedQuery = query.trim().slice(0, 80);
+  if (normalizedQuery.length < 2) return [];
 
   const data = await fetchJson<{
     data: { id: number; name: string; picture_small: string }[];
-  }>(`https://api.deezer.com/search/artist?q=${encodeURIComponent(query)}&limit=8`);
+  }>(`https://api.deezer.com/search/artist?q=${encodeURIComponent(normalizedQuery)}&limit=8`, {
+    revalidate: 60 * 10,
+  });
 
-  return data.data.map((a) => ({
-    id: a.id,
-    name: a.name,
-    picture_small: a.picture_small,
-  }));
+  if (!Array.isArray(data.data)) throw new Error("invalid Deezer response");
+
+  return data.data
+    .filter(
+      (artist) =>
+        Number.isSafeInteger(artist.id) &&
+        typeof artist.name === "string" &&
+        typeof artist.picture_small === "string",
+    )
+    .slice(0, 8)
+    .map((artist) => ({
+      id: artist.id,
+      name: artist.name.slice(0, 120),
+      picture_small: artist.picture_small,
+    }));
 }
 
 export async function prepareMusicContent(
   artistParam: string,
   totalRounds: number,
 ): Promise<RoundContent[]> {
-  const artistIds = artistParam.split(",").map((id) => id.trim());
+  const roundsRequested = assertTotalRounds(totalRounds);
+  const artistIds = [...new Set(artistParam.split(",").map((id) => id.trim()))].filter((id) =>
+    /^\d{1,12}$/.test(id),
+  );
+  if (artistIds.length === 0 || artistIds.length > 3) throw new Error("select 1 to 3 artists");
   const selectedIdSet = new Set(artistIds);
 
   // fetch top tracks and related artists for all selected artists in parallel
   const perArtist = await Promise.all(
     artistIds.map(async (id) => {
       const [topData, relatedData] = await Promise.all([
-        fetchJson<{ data: Track[] }>(`https://api.deezer.com/artist/${id}/top?limit=25`),
+        fetchJson<{ data: Track[] }>(`https://api.deezer.com/artist/${id}/top?limit=25`, {
+          revalidate: 60 * 10,
+        }),
         fetchJson<{ data: { id: number; name: string }[] }>(
           `https://api.deezer.com/artist/${id}/related?limit=10`,
+          { revalidate: 60 * 10 },
         ),
       ]);
+
+      if (!Array.isArray(topData.data) || !Array.isArray(relatedData.data)) {
+        throw new Error("invalid Deezer response");
+      }
 
       const related = relatedData.data.filter((r) => !selectedIdSet.has(r.id.toString()));
 
@@ -55,11 +83,13 @@ export async function prepareMusicContent(
         (r, i, arr) => arr.findIndex((x) => x.id === r.id) === i,
       );
 
-      const results = await Promise.allSettled(
-        shuffle(uniqueRelated)
-          .slice(0, 8)
-          .map((r) =>
-            fetchJson<{ data: Track[] }>(`https://api.deezer.com/artist/${r.id}/top?limit=5`),
+      const results = await mapWithConcurrency(
+        shuffle(uniqueRelated).slice(0, 6),
+        3,
+        (relatedArtist) =>
+          fetchJson<{ data: Track[] }>(
+            `https://api.deezer.com/artist/${relatedArtist.id}/top?limit=5`,
+            { revalidate: 60 * 10 },
           ),
       );
 
@@ -84,6 +114,7 @@ export async function prepareMusicContent(
 
   // round-robin across artists to build candidate list
   const candidates: {
+    id: number;
     answer: string;
     mediaUrl: string;
     mediaTitle: string;
@@ -93,7 +124,7 @@ export async function prepareMusicContent(
   const cursors = tracksByArtist.map(() => 0);
   const seen = new Set<string>();
 
-  while (candidates.length < totalRounds * 2) {
+  while (candidates.length < roundsRequested * 2) {
     let addedThisPass = false;
 
     for (let a = 0; a < tracksByArtist.length; a++) {
@@ -103,6 +134,7 @@ export async function prepareMusicContent(
         if (seen.has(track.title)) continue;
         seen.add(track.title);
         candidates.push({
+          id: track.id,
           answer: track.title,
           mediaUrl: track.preview!,
           mediaTitle: track.title,
@@ -122,7 +154,7 @@ export async function prepareMusicContent(
   const rounds: RoundContent[] = [];
 
   for (const candidate of candidates) {
-    if (rounds.length >= totalRounds) break;
+    if (rounds.length >= roundsRequested) break;
     if (usedAnswers.has(candidate.answer)) continue;
 
     // same shrinking-pool problem as buildRounds: fall back to reusing past
@@ -144,11 +176,13 @@ export async function prepareMusicContent(
       mediaUrl: candidate.mediaUrl,
       mediaTitle: candidate.mediaTitle,
       mediaArtist: candidate.mediaArtist,
-      isFinal: rounds.length === totalRounds - 1,
+      attribution: "Preview supplied by Deezer",
+      attributionUrl: `https://www.deezer.com/track/${candidate.id}`,
+      isFinal: rounds.length === roundsRequested - 1,
     });
   }
 
-  if (rounds.length < totalRounds) {
+  if (rounds.length < roundsRequested) {
     throw new Error("could not fetch enough tracks for the selected artists");
   }
 

@@ -18,25 +18,27 @@ export const get = query({
 
     if (!round) return null;
 
+    const room = await ctx.db.get(args.roomId);
+    if (!room || (round.state === "pending" && room.currentRound !== round.roundNumber)) {
+      return null;
+    }
+
     // Never expose answers before the reveal begins.
     if (round.state === "pending" || round.state === "active") {
-      const { correctAnswer: _, ...safe } = round;
+      const {
+        correctAnswer: _,
+        mediaTitle: _mediaTitle,
+        mediaArtist: _mediaArtist,
+        attribution: _attribution,
+        attributionUrl: _attributionUrl,
+        license: _license,
+        licenseUrl: _licenseUrl,
+        ...safe
+      } = round;
       return safe;
     }
 
     return round;
-  },
-});
-
-export const mediaUrls = query({
-  args: { roomId: v.id("rooms") },
-  handler: async (ctx, args) => {
-    const rounds = await ctx.db
-      .query("rounds")
-      .withIndex("by_roomId", (q) => q.eq("roomId", args.roomId))
-      .collect();
-
-    return rounds.map((r) => r.mediaUrl);
   },
 });
 

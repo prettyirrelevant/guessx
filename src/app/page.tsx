@@ -16,6 +16,7 @@ import { POPULAR_ARTISTS } from "@/lib/artists";
 import { ACTOR_CATEGORIES } from "@/lib/actor-categories";
 import { searchArtists } from "@/lib/actions";
 import { ProfileSetup } from "@/components/profile-setup";
+import { ModalDialog } from "@/components/modal-dialog";
 
 import styles from "./page.module.css";
 
@@ -212,290 +213,316 @@ function CreateRoomModal({
   };
 
   return (
-    <div className={styles.overlay} role="dialog" onClick={onClose}>
-      <div className={styles.modal} role="presentation" onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>create room</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="close">
-            ✕
+    <ModalDialog title="create room" onClose={onClose}>
+      <div className={styles.formGroup}>
+        <div className={styles.formLabel} id="game-mode-label">
+          game mode
+        </div>
+        <div className={styles.modeToggle} role="group" aria-labelledby="game-mode-label">
+          <button
+            className={`${styles.modeBtn} ${mode === "music" ? styles.active : ""}`}
+            onClick={() => setMode("music")}
+            type="button"
+            aria-pressed={mode === "music"}
+          >
+            <div className={styles.modeBtnIcon}>🎧</div>
+            <div className={styles.modeBtnLabel}>guess the song</div>
+          </button>
+          <button
+            className={`${styles.modeBtn} ${mode === "place" ? styles.active : ""}`}
+            onClick={() => setMode("place")}
+            type="button"
+            aria-pressed={mode === "place"}
+          >
+            <div className={styles.modeBtnIcon}>🌍</div>
+            <div className={styles.modeBtnLabel}>spot the landmark</div>
+          </button>
+          <button
+            className={`${styles.modeBtn} ${mode === "actor" ? styles.active : ""}`}
+            onClick={() => setMode("actor")}
+            type="button"
+            aria-pressed={mode === "actor"}
+          >
+            <div className={styles.modeBtnIcon}>🎬</div>
+            <div className={styles.modeBtnLabel}>guess the actor</div>
+          </button>
+          <button
+            className={`${styles.modeBtn} ${mode === "flag" ? styles.active : ""}`}
+            onClick={() => setMode("flag")}
+            type="button"
+            aria-pressed={mode === "flag"}
+          >
+            <div className={styles.modeBtnIcon}>🚩</div>
+            <div className={styles.modeBtnLabel}>name the flag</div>
           </button>
         </div>
+      </div>
 
+      {mode === "music" && (
         <div className={styles.formGroup}>
-          <label className={styles.formLabel}>game mode</label>
-          <div className={styles.modeToggle}>
-            <button
-              className={`${styles.modeBtn} ${mode === "music" ? styles.active : ""}`}
-              onClick={() => setMode("music")}
-              type="button"
-            >
-              <div className={styles.modeBtnIcon}>🎧</div>
-              <div className={styles.modeBtnLabel}>guess the song</div>
-            </button>
-            <button
-              className={`${styles.modeBtn} ${mode === "place" ? styles.active : ""}`}
-              onClick={() => setMode("place")}
-              type="button"
-            >
-              <div className={styles.modeBtnIcon}>🌍</div>
-              <div className={styles.modeBtnLabel}>spot the landmark</div>
-            </button>
-            <button
-              className={`${styles.modeBtn} ${mode === "actor" ? styles.active : ""}`}
-              onClick={() => setMode("actor")}
-              type="button"
-            >
-              <div className={styles.modeBtnIcon}>🎬</div>
-              <div className={styles.modeBtnLabel}>guess the actor</div>
-            </button>
-            <button
-              className={`${styles.modeBtn} ${mode === "flag" ? styles.active : ""}`}
-              onClick={() => setMode("flag")}
-              type="button"
-            >
-              <div className={styles.modeBtnIcon}>🚩</div>
-              <div className={styles.modeBtnLabel}>name the flag</div>
-            </button>
-          </div>
-        </div>
+          <label className={styles.formLabel}>
+            artists{" "}
+            <span className={styles.formLabelCount}>
+              ({selectedArtists.length}/{MAX_ARTISTS})
+            </span>
+          </label>
 
-        {mode === "music" && (
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>
-              artists{" "}
-              <span className={styles.formLabelCount}>
-                ({selectedArtists.length}/{MAX_ARTISTS})
-              </span>
-            </label>
-
-            {selectedArtists.length > 0 && (
-              <div className={styles.artistChips}>
-                {selectedArtists.map((a) => (
-                  <div key={a.id} className={styles.artistChip}>
-                    <Image
-                      src={`https://api.deezer.com/artist/${a.id}/image?size=small`}
-                      alt={a.name}
-                      className={styles.artistChipImg}
-                      width={22}
-                      height={22}
-                    />
-                    <span>{a.name}</span>
-                    <button
-                      className={styles.artistChipRemove}
-                      onClick={() => toggleArtist(a)}
-                      type="button"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {showSearch ? (
-              <div className={styles.artistSearchWrap}>
-                <div className={styles.artistSearchRow}>
-                  <input
-                    className={styles.artistSearch}
-                    placeholder="search for an artist..."
-                    value={artistQuery}
-                    onChange={(e) => setArtistQuery(e.target.value)}
-                    autoFocus
+          {selectedArtists.length > 0 && (
+            <div className={styles.artistChips}>
+              {selectedArtists.map((a) => (
+                <div key={a.id} className={styles.artistChip}>
+                  <Image
+                    src={`https://api.deezer.com/artist/${a.id}/image?size=small`}
+                    alt={a.name}
+                    className={styles.artistChipImg}
+                    width={22}
+                    height={22}
                   />
+                  <span>{a.name}</span>
                   <button
-                    className={styles.searchClose}
-                    onClick={() => {
-                      setShowSearch(false);
-                      setArtistQuery("");
-                      setArtistResults([]);
-                    }}
+                    className={styles.artistChipRemove}
+                    onClick={() => toggleArtist(a)}
                     type="button"
+                    aria-label={`remove ${a.name}`}
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </button>
                 </div>
+              ))}
+            </div>
+          )}
 
-                {searching && <div className={styles.searchStatus}>searching...</div>}
-
-                {!searching && artistQuery.trim() && artistResults.length === 0 && (
-                  <div className={styles.searchStatus}>no artists found</div>
-                )}
-
-                {artistResults.length > 0 && (
-                  <div className={styles.searchResults}>
-                    {artistResults.map((a) => {
-                      const isSelected = selectedIds.has(a.id);
-                      return (
-                        <button
-                          key={a.id}
-                          className={`${styles.searchResultItem} ${isSelected ? styles.searchResultSelected : ""}`}
-                          onClick={() => toggleArtist({ id: a.id, name: a.name })}
-                          disabled={isFull && !isSelected}
-                          type="button"
-                        >
-                          <Image
-                            src={a.picture_small}
-                            alt={a.name}
-                            className={styles.artistImg}
-                            width={32}
-                            height={32}
-                          />
-                          <span>{a.name}</span>
-                          {isSelected && <Check size={14} className={styles.checkIcon} />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+          {showSearch ? (
+            <div className={styles.artistSearchWrap}>
+              <div className={styles.artistSearchRow}>
+                <input
+                  className={styles.artistSearch}
+                  aria-label="search artists"
+                  placeholder="search for an artist..."
+                  value={artistQuery}
+                  onChange={(e) => setArtistQuery(e.target.value)}
+                  autoFocus
+                />
+                <button
+                  className={styles.searchClose}
+                  onClick={() => {
+                    setShowSearch(false);
+                    setArtistQuery("");
+                    setArtistResults([]);
+                  }}
+                  type="button"
+                  aria-label="close artist search"
+                >
+                  <X size={14} />
+                </button>
               </div>
-            ) : (
-              <>
-                <div className={styles.artistGrid}>
-                  {POPULAR_ARTISTS.map((a) => {
+
+              {searching && (
+                <div className={styles.searchStatus} role="status">
+                  searching...
+                </div>
+              )}
+
+              {!searching && artistQuery.trim() && artistResults.length === 0 && (
+                <div className={styles.searchStatus} role="status">
+                  no artists found
+                </div>
+              )}
+
+              {artistResults.length > 0 && (
+                <div className={styles.searchResults}>
+                  {artistResults.map((a) => {
                     const isSelected = selectedIds.has(a.id);
                     return (
                       <button
                         key={a.id}
-                        className={`${styles.artistGridItem} ${isSelected ? styles.artistGridItemSelected : ""}`}
-                        onClick={() => toggleArtist(a)}
+                        className={`${styles.searchResultItem} ${isSelected ? styles.searchResultSelected : ""}`}
+                        onClick={() => toggleArtist({ id: a.id, name: a.name })}
                         disabled={isFull && !isSelected}
                         type="button"
+                        aria-pressed={isSelected}
                       >
                         <Image
-                          src={`https://api.deezer.com/artist/${a.id}/image?size=small`}
+                          src={a.picture_small}
                           alt={a.name}
                           className={styles.artistImg}
-                          width={44}
-                          height={44}
+                          width={32}
+                          height={32}
                         />
-                        <span className={styles.artistName}>{a.name}</span>
+                        <span>{a.name}</span>
+                        {isSelected && <Check size={14} className={styles.checkIcon} />}
                       </button>
                     );
                   })}
                 </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className={styles.artistGrid}>
+                {POPULAR_ARTISTS.map((a) => {
+                  const isSelected = selectedIds.has(a.id);
+                  return (
+                    <button
+                      key={a.id}
+                      className={`${styles.artistGridItem} ${isSelected ? styles.artistGridItemSelected : ""}`}
+                      onClick={() => toggleArtist(a)}
+                      disabled={isFull && !isSelected}
+                      type="button"
+                      aria-pressed={isSelected}
+                    >
+                      <Image
+                        src={`https://api.deezer.com/artist/${a.id}/image?size=small`}
+                        alt={a.name}
+                        className={styles.artistImg}
+                        width={44}
+                        height={44}
+                      />
+                      <span className={styles.artistName}>{a.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                <button
-                  className={styles.searchToggle}
-                  onClick={() => setShowSearch(true)}
-                  type="button"
-                >
-                  <Search size={14} />
-                  <span>not here? search for more</span>
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {mode === "place" && (
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>country</label>
-            <select
-              className={styles.formSelect}
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {mode === "actor" && (
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>industry</label>
-            <select
-              className={styles.formSelect}
-              value={actorCategory}
-              onChange={(e) => setActorCategory(e.target.value)}
-            >
-              {ACTOR_CATEGORIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {mode === "flag" && (
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>continent</label>
-            <select
-              className={styles.formSelect}
-              value={continent}
-              onChange={(e) => setContinent(e.target.value)}
-            >
-              {CONTINENTS.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className={styles.formRow}>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>players</label>
-            <input
-              className={styles.formInput}
-              type="number"
-              min={2}
-              max={20}
-              value={maxPlayers}
-              onChange={(e) => setMaxPlayers(e.target.value)}
-              onBlur={() => {
-                const n = Number(maxPlayers);
-                if (!Number.isFinite(n) || n < 2) setMaxPlayers("2");
-                else if (n > 20) setMaxPlayers("20");
-              }}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>rounds</label>
-            <select
-              className={styles.formSelect}
-              value={totalRounds}
-              onChange={(e) => setTotalRounds(Number(e.target.value))}
-            >
-              {[3, 5, 7, 10].map((n) => (
-                <option key={n} value={n}>
-                  {n} rounds
-                </option>
-              ))}
-            </select>
-          </div>
+              <button
+                className={styles.searchToggle}
+                onClick={() => setShowSearch(true)}
+                type="button"
+              >
+                <Search size={14} />
+                <span>not here? search for more</span>
+              </button>
+            </>
+          )}
         </div>
+      )}
 
+      {mode === "place" && (
         <div className={styles.formGroup}>
-          <label className={styles.formLabel}>time per round</label>
+          <label className={styles.formLabel} htmlFor="country">
+            country
+          </label>
           <select
+            id="country"
             className={styles.formSelect}
-            value={roundDuration}
-            onChange={(e) => setRoundDuration(Number(e.target.value))}
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
           >
-            <option value={10_000}>10 seconds</option>
-            <option value={15_000}>15 seconds</option>
-            <option value={20_000}>20 seconds</option>
-            <option value={30_000}>30 seconds</option>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
           </select>
         </div>
+      )}
 
-        <button
-          className={styles.submitBtn}
-          onClick={handleSubmit}
-          disabled={loading || !hasProfile}
-        >
-          {loading ? "setting up..." : "let's go"}
-        </button>
+      {mode === "actor" && (
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel} htmlFor="industry">
+            industry
+          </label>
+          <select
+            id="industry"
+            className={styles.formSelect}
+            value={actorCategory}
+            onChange={(e) => setActorCategory(e.target.value)}
+          >
+            {ACTOR_CATEGORIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
-        {error && <div className={styles.errorMsg}>{error}</div>}
+      {mode === "flag" && (
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel} htmlFor="continent">
+            continent
+          </label>
+          <select
+            id="continent"
+            className={styles.formSelect}
+            value={continent}
+            onChange={(e) => setContinent(e.target.value)}
+          >
+            {CONTINENTS.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className={styles.formRow}>
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel} htmlFor="max-players">
+            players
+          </label>
+          <input
+            id="max-players"
+            className={styles.formInput}
+            type="number"
+            min={2}
+            max={20}
+            value={maxPlayers}
+            onChange={(e) => setMaxPlayers(e.target.value)}
+            onBlur={() => {
+              const n = Number(maxPlayers);
+              if (!Number.isFinite(n) || n < 2) setMaxPlayers("2");
+              else if (n > 20) setMaxPlayers("20");
+            }}
+          />
+        </div>
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel} htmlFor="round-count">
+            rounds
+          </label>
+          <select
+            id="round-count"
+            className={styles.formSelect}
+            value={totalRounds}
+            onChange={(e) => setTotalRounds(Number(e.target.value))}
+          >
+            {[3, 5, 7, 10].map((n) => (
+              <option key={n} value={n}>
+                {n} rounds
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
-    </div>
+
+      <div className={styles.formGroup}>
+        <label className={styles.formLabel} htmlFor="round-duration">
+          time per round
+        </label>
+        <select
+          id="round-duration"
+          className={styles.formSelect}
+          value={roundDuration}
+          onChange={(e) => setRoundDuration(Number(e.target.value))}
+        >
+          <option value={10_000}>10 seconds</option>
+          <option value={15_000}>15 seconds</option>
+          <option value={20_000}>20 seconds</option>
+          <option value={30_000}>30 seconds</option>
+        </select>
+      </div>
+
+      <button className={styles.submitBtn} onClick={handleSubmit} disabled={loading || !hasProfile}>
+        {loading ? "setting up..." : "let's go"}
+      </button>
+
+      {error && (
+        <div className={styles.errorMsg} role="alert">
+          {error}
+        </div>
+      )}
+    </ModalDialog>
   );
 }
 
@@ -558,52 +585,50 @@ function JoinRoomModal({
   };
 
   return (
-    <div className={styles.overlay} role="dialog" onClick={onClose}>
-      <div className={styles.modal} role="presentation" onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>join room</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="close">
-            ✕
-          </button>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label className={styles.formLabel}>room code</label>
-          <input
-            className={styles.joinInput}
-            placeholder="AB-1234"
-            value={code}
-            onChange={(e) => {
-              const val = e.target.value;
-              try {
-                const url = new URL(val);
-                if (url.origin === window.location.origin) {
-                  const match = url.pathname.match(ROOM_CODE_RE);
-                  if (match) {
-                    setCode(match[1].toUpperCase());
-                    return;
-                  }
+    <ModalDialog title="join room" onClose={onClose}>
+      <div className={styles.formGroup}>
+        <label className={styles.formLabel} htmlFor="room-code">
+          room code
+        </label>
+        <input
+          className={styles.joinInput}
+          id="room-code"
+          placeholder="AB-1234"
+          value={code}
+          onChange={(e) => {
+            const val = e.target.value;
+            try {
+              const url = new URL(val);
+              if (url.origin === window.location.origin) {
+                const match = url.pathname.match(ROOM_CODE_RE);
+                if (match) {
+                  setCode(match[1].toUpperCase());
+                  return;
                 }
-              } catch {
-                // not a url, treat as raw code
               }
-              setCode(val);
-            }}
-            autoFocus
-          />
-          <p className={styles.joinHint}>enter the room code or paste an invite link</p>
-        </div>
-
-        <button
-          className={styles.submitBtn}
-          onClick={handleSubmit}
-          disabled={loading || !hasProfile || code.trim().length < 6}
-        >
-          {loading ? "joining..." : "join game"}
-        </button>
-
-        {error && <div className={styles.errorMsg}>{error}</div>}
+            } catch {
+              // not a url, treat as raw code
+            }
+            setCode(val);
+          }}
+          autoFocus
+        />
+        <p className={styles.joinHint}>enter the room code or paste an invite link</p>
       </div>
-    </div>
+
+      <button
+        className={styles.submitBtn}
+        onClick={handleSubmit}
+        disabled={loading || !hasProfile || code.trim().length < 6}
+      >
+        {loading ? "joining..." : "join game"}
+      </button>
+
+      {error && (
+        <div className={styles.errorMsg} role="alert">
+          {error}
+        </div>
+      )}
+    </ModalDialog>
   );
 }

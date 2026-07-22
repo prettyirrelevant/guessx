@@ -147,7 +147,7 @@
 }
 
 .listName {
-  font-family: var(--font-dm-mono), monospace;
+  font-family: inherit;
   font-size: 13px;
   color: var(--text);
   flex: 1;
@@ -238,10 +238,16 @@
 }
 
 .waitingMessage {
-  font-family: var(--font-dm-mono), monospace;
+  font-family: inherit;
   font-size: 13px;
   color: var(--muted);
   letter-spacing: 0.02em;
+}
+
+.actionError {
+  color: var(--accent3);
+  font-size: 13px;
+  text-align: center;
 }
 
 .homeLink {

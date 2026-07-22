@@ -6,6 +6,21 @@
   padding: 24px;
 }
 
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.actionError {
+  margin-top: 12px;
+  color: var(--accent3);
+  font-size: 13px;
+  text-align: center;
+}
+
 .content {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -49,13 +64,6 @@
 
 .roomCode:hover svg {
   color: var(--accent);
-}
-
-.copyHint {
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 10px;
 }
 
 .modeBadge {

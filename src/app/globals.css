@@ -2,13 +2,13 @@
   --bg: #0a0a0a;
   --surface: #111111;
   --surface2: #1a1a1a;
-  --border: #222222;
+  --border: #333333;
   --accent: #c8f135;
   --accent2: #5b8cff;
   --accent3: #ff5c5c;
   --text: #e8e8e8;
-  --muted: #666666;
-  --muted2: #444444;
+  --muted: #a0a0a0;
+  --muted2: #858585;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -43,6 +43,12 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 }
 
 body::before {
@@ -78,6 +84,7 @@ button {
   background: none;
   border: none;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 input,
@@ -92,9 +99,14 @@ select {
   transition: border-color var(--transition-fast);
 }
 
-input:focus,
-select:focus {
+input:focus-visible,
+select:focus-visible {
   border-color: var(--accent2);
+}
+
+:where(a, button, input, select, [role="slider"]):focus-visible {
+  outline: 2px solid var(--accent2);
+  outline-offset: 3px;
 }
 
 ::selection {
@@ -165,5 +177,28 @@ select:focus {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --border: #666666;
+    --muted: #d0d0d0;
+    --muted2: #b8b8b8;
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Copy, Check, Shield } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
@@ -18,24 +18,7 @@ export function Lobby({ room, sessionId }: { room: PublicRoom; sessionId: string
   const startGame = useMutation(api.rooms.start);
   const closeRoom = useMutation(api.rooms.close);
   const clipboard = useClipboard({ timeout: 2000 });
-
-  // preload landmark images while players wait in the lobby so they're
-  // cached by the browser before the game starts, avoiding slow loads
-  // that eat into the round countdown
-  const mediaUrls = useQuery(
-    api.rounds.mediaUrls,
-    room.mode === "place" || room.mode === "actor" || room.mode === "flag"
-      ? { roomId: room._id }
-      : "skip",
-  );
-
-  useEffect(() => {
-    if (!mediaUrls) return;
-    mediaUrls.forEach((url) => {
-      const img = new window.Image();
-      img.src = url;
-    });
-  }, [mediaUrls]);
+  const [actionError, setActionError] = useState("");
 
   const isHost = room.isHost;
   const playerCount = players?.length ?? 0;
@@ -46,11 +29,23 @@ export function Lobby({ room, sessionId }: { room: PublicRoom; sessionId: string
   };
 
   const handleStart = async () => {
-    await startGame({ roomId: room._id, userId: sessionId });
+    setActionError("");
+    try {
+      const result = await startGame({ roomId: room._id, userId: sessionId });
+      if (result?.error) setActionError(result.error);
+    } catch {
+      setActionError("could not start the game. try again.");
+    }
   };
 
   const handleClose = async () => {
-    await closeRoom({ roomId: room._id, userId: sessionId });
+    setActionError("");
+    try {
+      const result = await closeRoom({ roomId: room._id, userId: sessionId });
+      if (result.error) setActionError(result.error);
+    } catch {
+      setActionError("could not close the room. try again.");
+    }
   };
 
   const modeLabel =
@@ -66,10 +61,17 @@ export function Lobby({ room, sessionId }: { room: PublicRoom; sessionId: string
     <div className={styles.container}>
       <div className={styles.content}>
         <div className={styles.header}>
-          <button className={styles.roomCode} onClick={handleCopy} title="click to copy">
+          <button
+            className={styles.roomCode}
+            onClick={handleCopy}
+            aria-label="copy room invite link"
+          >
             {room.roomId}
             {clipboard.copied ? <Check size={18} /> : <Copy size={18} />}
           </button>
+          <span className={styles.srOnly} aria-live="polite">
+            {clipboard.copied ? "invite link copied" : ""}
+          </span>
         </div>
 
         <div className={styles.modeBadge}>{modeLabel}</div>
@@ -135,6 +137,11 @@ export function Lobby({ room, sessionId }: { room: PublicRoom; sessionId: string
         )}
 
         {!isHost && <div className={styles.waitingMsg}>waiting for the host to start...</div>}
+        {actionError && (
+          <p className={styles.actionError} role="alert">
+            {actionError}
+          </p>
+        )}
       </div>
     </div>
   );

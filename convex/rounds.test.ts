@@ -101,8 +101,7 @@ describe("round queries", () => {
 
     const round = await t.query(api.rounds.get, { roomId, roundNumber: 2 });
 
-    expect(round?.state).toBe("pending");
-    expect(round).not.toHaveProperty("correctAnswer");
+    expect(round).toBeNull();
   });
 
   it("hides correctAnswer while round is active", async () => {
@@ -136,19 +135,6 @@ describe("round queries", () => {
 
     const round = await t.query(api.rounds.get, { roomId, roundNumber: 99 });
     expect(round).toBeNull();
-  });
-
-  it("returns all media urls for preloading", async () => {
-    const t = convexTest(schema, modules);
-    const { roomId } = await setupActiveRound(t);
-
-    const urls = await t.query(api.rounds.mediaUrls, { roomId });
-    expect(urls).toHaveLength(3);
-    expect(urls).toEqual([
-      "https://example.com/1",
-      "https://example.com/2",
-      "https://example.com/3",
-    ]);
   });
 });
 

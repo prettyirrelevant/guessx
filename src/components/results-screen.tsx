@@ -20,6 +20,7 @@ export function ResultsScreen({ room, sessionId }: { room: PublicRoom; sessionId
   const router = useRouter();
   const { displayName, avatar } = useSession();
   const [starting, setStarting] = useState(false);
+  const [actionError, setActionError] = useState("");
   const isHost = room.isHost;
 
   if (!leaderboard) {
@@ -98,15 +99,22 @@ export function ResultsScreen({ room, sessionId }: { room: PublicRoom; sessionId
               disabled={starting}
               onClick={async () => {
                 setStarting(true);
-                const result = await playAgain({
-                  roomId: room._id,
-                  userId: sessionId,
-                  hostName: displayName,
-                  hostAvatar: avatar,
-                });
-                if (result && "roomCode" in result) {
-                  router.push(`/room/${result.roomCode}`);
-                } else {
+                setActionError("");
+                try {
+                  const result = await playAgain({
+                    roomId: room._id,
+                    userId: sessionId,
+                    hostName: displayName,
+                    hostAvatar: avatar,
+                  });
+                  if (result && "roomCode" in result) {
+                    router.push(`/room/${result.roomCode}`);
+                    return;
+                  }
+                  setActionError(result?.error ?? "could not start another game");
+                } catch {
+                  setActionError("could not start another game. try again.");
+                } finally {
                   setStarting(false);
                 }
               }}
@@ -118,7 +126,7 @@ export function ResultsScreen({ room, sessionId }: { room: PublicRoom; sessionId
               play again
             </Link>
           ) : (
-            <div className={styles.waitingGroup}>
+            <div className={styles.waitingGroup} role="status">
               <div className={styles.waitingDots}>
                 <span className={styles.dot} />
                 <span className={styles.dot} />
@@ -126,6 +134,11 @@ export function ResultsScreen({ room, sessionId }: { room: PublicRoom; sessionId
               </div>
               <span className={styles.waitingMessage}>waiting for host to start a new game</span>
             </div>
+          )}
+          {actionError && (
+            <p className={styles.actionError} role="alert">
+              {actionError}
+            </p>
           )}
           <Link href="/" className={styles.homeLink}>
             back to home

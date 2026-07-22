@@ -1,0 +1,48 @@
+.main {
+  width: min(680px, calc(100% - 32px));
+  min-height: calc(100dvh - 52px);
+  margin: 0 auto;
+  padding: 48px 0 72px;
+}
+.back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+.main h1 {
+  margin: 24px 0;
+  font-family: var(--font-syne), sans-serif;
+  font-size: clamp(36px, 9vw, 64px);
+}
+.list {
+  display: grid;
+  gap: 12px;
+}
+.list section {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.list h2 {
+  margin-bottom: 10px;
+  font-family: var(--font-syne), sans-serif;
+  font-size: 18px;
+}
+.list p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.list a {
+  color: var(--accent2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.list img {
+  width: min(100%, 300px);
+  height: auto;
+  margin-bottom: 16px;
+}

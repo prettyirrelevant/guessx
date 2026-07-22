@@ -22,6 +22,17 @@
   color: var(--text);
 }
 
+.textLink {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--muted);
+}
+
+.textLink:hover {
+  color: var(--text);
+}
+
 .dot {
   color: var(--muted2);
 }
@@ -35,8 +46,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   color: var(--muted2);
   transition: color var(--transition-fast);

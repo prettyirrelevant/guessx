@@ -82,81 +82,13 @@
   animation: fadeIn 0.6s ease 0.3s both;
 }
 
-.footer {
-  position: absolute;
-  bottom: 24px;
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 11px;
-  color: var(--muted2);
-  letter-spacing: 0.05em;
-}
-
-/* modal overlay */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 24px;
-  animation: fadeIn 0.2s ease;
-}
-
-.modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-  width: 100%;
-  max-width: 440px;
-  box-shadow: var(--shadow-elevated);
-  animation: scaleIn 0.25s ease;
-  max-height: 90dvh;
-  overflow-y: auto;
-}
-
-.modalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.modalTitle {
-  font-family: var(--font-syne), sans-serif;
-  font-weight: 800;
-  font-size: 22px;
-  color: #fff;
-  letter-spacing: -0.02em;
-}
-
-.closeBtn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  color: var(--muted);
-  font-size: 18px;
-  transition: all var(--transition-fast);
-}
-
-.closeBtn:hover {
-  background: var(--surface2);
-  color: var(--text);
-}
-
 .formGroup {
   margin-bottom: 18px;
 }
 
 .formLabel {
   display: block;
-  font-family: var(--font-dm-mono), monospace;
+  font-family: inherit;
   font-size: 11px;
   color: var(--muted);
   text-transform: uppercase;
@@ -167,7 +99,7 @@
 .formInput,
 .formSelect {
   width: 100%;
-  font-family: var(--font-dm-mono), monospace;
+  font-family: inherit;
   font-size: 14px;
 }
 
@@ -209,7 +141,7 @@
 }
 
 .modeBtnLabel {
-  font-family: var(--font-dm-mono), monospace;
+  font-family: inherit;
   font-size: 12px;
   color: var(--text);
 }
@@ -302,7 +234,7 @@
   background: var(--surface2);
   border: 1px solid var(--accent);
   border-radius: 999px;
-  font-family: var(--font-dm-mono), monospace;
+  font-family: inherit;
   font-size: 12px;
   color: var(--text);
 }
@@ -322,6 +254,8 @@
   color: var(--muted);
   transition: color var(--transition-fast);
   margin-left: 2px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .artistChipRemove:hover {
@@ -366,7 +300,7 @@
 
 .artistSearch {
   flex: 1;
-  font-family: var(--font-dm-mono), monospace;
+  font-family: inherit;
   font-size: 14px;
 }
 
@@ -374,8 +308,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   color: var(--muted);
   transition: all var(--transition-fast);
@@ -410,7 +344,7 @@
   width: 100%;
   text-align: left;
   padding: 8px 12px;
-  font-family: var(--font-dm-mono), monospace;
+  font-family: inherit;
   font-size: 13px;
   color: var(--text);
   transition: background var(--transition-fast);
@@ -500,10 +434,6 @@
   .btnPrimary,
   .btnSecondary {
     width: 100%;
-  }
-
-  .modal {
-    padding: 24px;
   }
 
   .formRow {

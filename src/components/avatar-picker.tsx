@@ -23,6 +23,7 @@ export function AvatarPicker({
             onClick={() => onSelect(seed)}
             type="button"
             aria-label={`select ${seed} avatar`}
+            aria-pressed={seed === selected}
           >
             <Image src={getAvatarUrl(seed)} alt={seed} width={32} height={32} />
           </button>

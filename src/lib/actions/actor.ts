@@ -1,6 +1,11 @@
-"use server";
-
-import { shuffle, buildRounds, type RoundContent } from "./shared";
+import {
+  assertTotalRounds,
+  buildRounds,
+  fetchJson,
+  mapWithConcurrency,
+  shuffle,
+  type RoundContent,
+} from "./shared";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/h632";
@@ -88,18 +93,23 @@ interface TmdbCastMember {
 }
 
 async function fetchTmdb<T>(path: string): Promise<T> {
-  const res = await fetch(`${TMDB_BASE}/${path}`, {
-    headers: { Authorization: `Bearer ${process.env.TMDB_API_READ_ACCESS_TOKEN}` },
+  const token = process.env.TMDB_API_READ_ACCESS_TOKEN;
+  if (!token) throw new Error("TMDB_API_READ_ACCESS_TOKEN is not configured");
+
+  return fetchJson<T>(`${TMDB_BASE}/${path}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    revalidate: 60 * 60,
+    timeoutMs: 10_000,
   });
-  if (!res.ok) throw new Error(`TMDB fetch failed: ${res.status}`);
-  return res.json();
 }
 
 export async function prepareActorContent(
   category: string,
   totalRounds: number,
 ): Promise<RoundContent[]> {
-  const config = INDUSTRY_CONFIG[category] ?? INDUSTRY_CONFIG["hollywood"];
+  const roundsRequested = assertTotalRounds(totalRounds);
+  const config = INDUSTRY_CONFIG[category];
+  if (!config) throw new Error("invalid actor category");
 
   // fetch titles from randomized pages for variety across games
   const pagePool = Array.from({ length: 10 }, (_, i) => i + 1);
@@ -116,14 +126,16 @@ export async function prepareActorContent(
     }),
   );
 
-  const allTitles = pageResults.flatMap((r) => (r.status === "fulfilled" ? r.value.results : []));
+  const allTitles = pageResults.flatMap((result) =>
+    result.status === "fulfilled" && Array.isArray(result.value.results)
+      ? result.value.results.filter((title) => Number.isSafeInteger(title.id))
+      : [],
+  );
 
   // fetch credits from top titles in parallel
   const creditsType = config.endpoint === "discover/tv" ? "tv" : "movie";
-  const creditsResults = await Promise.allSettled(
-    allTitles
-      .slice(0, 30)
-      .map((title) => fetchTmdb<{ cast: TmdbCastMember[] }>(`${creditsType}/${title.id}/credits`)),
+  const creditsResults = await mapWithConcurrency(allTitles.slice(0, 24), 5, (title) =>
+    fetchTmdb<{ cast: TmdbCastMember[] }>(`${creditsType}/${title.id}/credits`),
   );
 
   // collect actors from credits, tracking appearance count per actor
@@ -131,7 +143,7 @@ export async function prepareActorContent(
   const actorMap = new Map<number, { name: string; photo: string; popularity: number }>();
   const appearances = new Map<number, number>();
   for (const result of creditsResults) {
-    if (result.status !== "fulfilled") continue;
+    if (result.status !== "fulfilled" || !Array.isArray(result.value.cast)) continue;
     for (const person of result.value.cast.slice(0, config.maxCastPerTitle)) {
       if (!person.profile_path) continue;
       appearances.set(person.id, (appearances.get(person.id) ?? 0) + 1);
@@ -149,22 +161,24 @@ export async function prepareActorContent(
   // filter by minimum appearances (removes international cameo actors for regional industries)
   const actors = [...actorMap.entries()]
     .filter(([id]) => (appearances.get(id) ?? 0) >= config.minAppearances)
-    .map(([, actor]) => actor)
+    .map(([id, actor]) => ({ id, ...actor }))
     .toSorted((a, b) => b.popularity - a.popularity);
 
   if (actors.length < 4) {
     throw new Error("could not find enough actors for this category");
   }
 
-  const candidates = shuffle(actors.slice(0, Math.max(totalRounds * 3, 20))).map((a) => ({
+  const candidates = shuffle(actors.slice(0, Math.max(roundsRequested * 3, 20))).map((a) => ({
     answer: a.name,
     mediaUrl: a.photo,
     mediaTitle: a.name,
+    attribution: "Data and image supplied by TMDB",
+    attributionUrl: `https://www.themoviedb.org/person/${a.id}`,
   }));
 
   return buildRounds({
     candidates,
     distractorNames: actors.map((a) => a.name),
-    totalRounds,
+    totalRounds: roundsRequested,
   });
 }

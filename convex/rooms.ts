@@ -11,6 +11,15 @@ function generateRoomCode(): string {
   return `${l1}${l2}-${num}`;
 }
 
+function isHttpsUrl(value: string): boolean {
+  if (value.length > 2_048) return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 async function createRoom(
   ctx: MutationCtx,
   args: {
@@ -86,7 +95,43 @@ export const create = mutation({
     hostAvatar: v.string(),
   },
   handler: async (ctx, args) => {
+    if (
+      args.hostId.length < 1 ||
+      args.hostId.length > 100 ||
+      args.hostName.trim().length < 1 ||
+      args.hostName.length > 20 ||
+      args.hostAvatar.length > 100 ||
+      !Number.isInteger(args.maxPlayers) ||
+      args.maxPlayers < 2 ||
+      args.maxPlayers > 20 ||
+      !Number.isInteger(args.totalRounds) ||
+      args.totalRounds < 1 ||
+      args.totalRounds > 10 ||
+      ![10_000, 15_000, 20_000, 30_000].includes(args.roundDuration)
+    ) {
+      throw new Error("invalid room settings");
+    }
     return createRoom(ctx, args);
+  },
+});
+
+export const preparationConfig = query({
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room || room.state !== "preparing" || room.hostId !== args.userId) return null;
+
+    return {
+      mode: room.mode,
+      totalRounds: room.totalRounds,
+      artist: room.artist,
+      country: room.country,
+      actorCategory: room.actorCategory,
+      continent: room.continent,
+    };
   },
 });
 
@@ -102,6 +147,10 @@ export const completePreparation = mutation({
         mediaUrl: v.string(),
         mediaTitle: v.optional(v.string()),
         mediaArtist: v.optional(v.string()),
+        attribution: v.optional(v.string()),
+        attributionUrl: v.optional(v.string()),
+        license: v.optional(v.string()),
+        licenseUrl: v.optional(v.string()),
         isFinal: v.boolean(),
       }),
     ),
@@ -118,7 +167,15 @@ export const completePreparation = mutation({
         (round, index) =>
           round.roundNumber === index + 1 &&
           round.isFinal === (index === room.totalRounds - 1) &&
-          round.options.includes(round.correctAnswer),
+          round.options.length === 4 &&
+          new Set(round.options).size === 4 &&
+          round.options.includes(round.correctAnswer) &&
+          round.options.every((option) => option.length > 0 && option.length <= 200) &&
+          isHttpsUrl(round.mediaUrl) &&
+          (!round.attributionUrl || isHttpsUrl(round.attributionUrl)) &&
+          (!round.licenseUrl || isHttpsUrl(round.licenseUrl)) &&
+          (!round.attribution || round.attribution.length <= 500) &&
+          (!round.license || round.license.length <= 100),
       );
     if (!validRounds) return { error: "invalid rounds" };
 
@@ -150,10 +207,14 @@ export const close = mutation({
   },
   handler: async (ctx, args) => {
     const room = await ctx.db.get(args.roomId);
-    if (!room || room.hostId !== args.userId) return;
-    if (room.state === "finished" || room.state === "abandoned") return;
+    if (!room) return { error: "room not found" };
+    if (room.hostId !== args.userId) return { error: "only the host can close the room" };
+    if (room.state === "finished" || room.state === "abandoned") {
+      return { error: "room is already closed" };
+    }
 
     await ctx.db.patch(args.roomId, { state: "abandoned" });
+    return { success: true };
   },
 });
 

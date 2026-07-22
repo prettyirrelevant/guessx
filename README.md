@@ -12,7 +12,7 @@ real-time multiplayer guessing game. challenge your friends to guess the song, s
 ## game modes
 
 - **music** - listen to a 30-second preview and guess the track. supports up to 3 artists per game (deezer api)
-- **places** - view a landmark photo and name it. 20 countries supported, from the US to Nigeria (openverse api)
+- **places** - view a landmark photo and name it. 20 countries supported, from the US to Nigeria (Wikipedia and Wikimedia Commons APIs)
 - **actors** - see a headshot and identify the actor. 8 industry categories: hollywood, bollywood, nollywood, k-drama, british cinema, french cinema, anime, telenovela (tmdb api)
 
 ## how it works
@@ -40,7 +40,12 @@ pnpx convex dev   # start convex backend
 pnpm dev           # start next.js dev server
 ```
 
-requires `TMDB_ACCESS_TOKEN` for actor mode.
+Provider configuration:
+
+- `TMDB_API_READ_ACCESS_TOKEN` is required for actor mode.
+- Country metadata is bundled locally. Flag mode uses FlagCDN and does not call REST Countries.
+
+See the in-app `/credits` page for provider attribution and licensing details.
 
 ## license
 

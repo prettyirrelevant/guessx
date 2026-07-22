@@ -47,6 +47,7 @@
   height: 40px;
   cursor: pointer;
   margin-bottom: 4px;
+  touch-action: none;
 }
 
 .waveTrack {
@@ -107,8 +108,8 @@
 }
 
 .muteBtn {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,6 +117,14 @@
   color: var(--muted);
   flex-shrink: 0;
   transition: color var(--transition-fast);
+}
+
+.srError {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 .muteBtn:hover {
@@ -126,11 +135,6 @@
   .player {
     padding: 12px 14px;
     gap: 10px;
-  }
-
-  .playBtn {
-    width: 42px;
-    height: 42px;
   }
 
   .waveform {

@@ -25,21 +25,26 @@ export function AudioPlayer({ src }: { src: string }) {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [playbackError, setPlaybackError] = useState("");
 
-  const toggle = useCallback(() => {
+  const toggle = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    setPlaying((prev) => {
-      if (prev) {
-        audio.pause();
-      } else {
-        audio.play().catch(() => {
-          // browser blocked autoplay, user needs to click
-        });
-      }
-      return !prev;
-    });
+    if (!audio.paused) {
+      audio.pause();
+      setPlaying(false);
+      return;
+    }
+
+    try {
+      await audio.play();
+      setPlaying(true);
+      setPlaybackError("");
+    } catch {
+      setPlaying(false);
+      setPlaybackError("audio could not play. try again.");
+    }
   }, []);
 
   useEffect(() => {
@@ -56,10 +61,19 @@ export function AudioPlayer({ src }: { src: string }) {
       setProgress(0);
       setCurrentTime(0);
     };
+    const onPause = () => setPlaying(false);
+    const onPlay = () => setPlaying(true);
+    const onError = () => {
+      setPlaying(false);
+      setPlaybackError("audio preview is unavailable.");
+    };
 
     audio.addEventListener("loadedmetadata", onLoadedMetadata);
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("error", onError);
 
     audio
       .play()
@@ -74,6 +88,9 @@ export function AudioPlayer({ src }: { src: string }) {
       audio.removeEventListener("loadedmetadata", onLoadedMetadata);
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("error", onError);
       audio.pause();
       audio.src = "";
     };
@@ -85,20 +102,33 @@ export function AudioPlayer({ src }: { src: string }) {
     }
   }, [muted]);
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const seekToPointer = (clientX: number, element: HTMLDivElement) => {
     const audio = audioRef.current;
     if (!audio || !duration) return;
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const rect = element.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     audio.currentTime = ratio * duration;
+  };
+
+  const handleSeekKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+    let nextTime = audio.currentTime;
+    if (event.key === "ArrowLeft" || event.key === "ArrowDown") nextTime -= 5;
+    else if (event.key === "ArrowRight" || event.key === "ArrowUp") nextTime += 5;
+    else if (event.key === "Home") nextTime = 0;
+    else if (event.key === "End") nextTime = duration;
+    else return;
+    event.preventDefault();
+    audio.currentTime = Math.max(0, Math.min(duration, nextTime));
   };
 
   return (
     <div className={styles.player}>
       <button
         className={`${styles.playBtn} ${playing ? styles.playing : ""}`}
-        onClick={toggle}
+        onClick={() => void toggle()}
         aria-label={playing ? "pause" : "play"}
       >
         {playing ? <Pause size={22} /> : <Play size={22} />}
@@ -112,8 +142,22 @@ export function AudioPlayer({ src }: { src: string }) {
           aria-valuenow={Math.round(progress * 100)}
           aria-valuemin={0}
           aria-valuemax={100}
+          aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
           tabIndex={0}
-          onClick={handleSeek}
+          onKeyDown={handleSeekKey}
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            seekToPointer(event.clientX, event.currentTarget);
+          }}
+          onPointerMove={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              seekToPointer(event.clientX, event.currentTarget);
+            }
+          }}
+          onPointerUp={(event) => {
+            seekToPointer(event.clientX, event.currentTarget);
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }}
         >
           <div className={styles.waveTrack}>
             <div className={styles.waveFill} style={{ width: `${progress * 100}%` }} />
@@ -146,9 +190,15 @@ export function AudioPlayer({ src }: { src: string }) {
         className={styles.muteBtn}
         onClick={() => toggleMuted()}
         aria-label={muted ? "unmute" : "mute"}
+        aria-pressed={muted}
       >
         {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
       </button>
+      {playbackError && (
+        <span className={styles.srError} role="alert">
+          {playbackError}
+        </span>
+      )}
     </div>
   );
 }

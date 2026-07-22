@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Github } from "lucide-react";
 
 import styles from "./footer.module.css";
@@ -18,6 +19,10 @@ export function Footer() {
           @eniolawtf
         </a>
       </span>
+      <span className={styles.dot}>·</span>
+      <Link href="/credits" className={styles.textLink}>
+        credits
+      </Link>
       <span className={styles.dot}>·</span>
       <div className={styles.links}>
         <a

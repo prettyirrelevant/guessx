@@ -68,8 +68,6 @@ function ActiveRound({
     _id: Id<"rounds">;
     options: string[];
     mediaUrl: string;
-    mediaTitle?: string;
-    mediaArtist?: string;
     startedAt?: number;
     endsAt?: number;
     isFinal: boolean;
@@ -85,6 +83,7 @@ function ActiveRound({
 
   const [selected, setSelected] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const lockedRef = useRef(false);
   const [showFinalIntro, setShowFinalIntro] = useState(
     () => round.isFinal && Date.now() < (round.startedAt ?? 0),
@@ -94,6 +93,7 @@ function ActiveRound({
   useEffect(() => {
     setSelected(null);
     setLocked(false);
+    setSubmitError("");
     lockedRef.current = false;
     const remainingIntro = round.isFinal ? Math.max(0, (round.startedAt ?? 0) - Date.now()) : 0;
     setShowFinalIntro(remainingIntro > 0);
@@ -109,16 +109,39 @@ function ActiveRound({
 
       setSelected(option);
       setLocked(true);
+      setSubmitError("");
 
-      await submitAnswer({
-        roundId: round._id,
-        playerId: currentPlayer._id,
-        userId: sessionId,
-        selectedOption: option,
-      });
+      try {
+        const result = await submitAnswer({
+          roundId: round._id,
+          playerId: currentPlayer._id,
+          userId: sessionId,
+          selectedOption: option,
+        });
+        if (result?.error) throw new Error(result.error);
+      } catch (cause) {
+        lockedRef.current = false;
+        setLocked(false);
+        setSelected(null);
+        setSubmitError(cause instanceof Error ? cause.message : "answer was not submitted");
+      }
     },
     [round._id, currentPlayer._id, sessionId, submitAnswer],
   );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || lockedRef.current) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, select, textarea, [contenteditable='true']")) return;
+      const index = event.key.toLowerCase().charCodeAt(0) - 97;
+      if (index < 0 || index >= round.options.length) return;
+      event.preventDefault();
+      void handleSelect(round.options[index]);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleSelect, round.options]);
 
   const connectedPlayers = useMemo(
     () => players.filter((p) => p.status === "connected"),
@@ -209,7 +232,7 @@ function ActiveRound({
         )}
       </div>
 
-      <div className={styles.options}>
+      <div className={styles.options} aria-label="Answer choices">
         {round.options.map((option, i) => (
           <button
             key={option}
@@ -218,12 +241,19 @@ function ActiveRound({
             } ${locked && selected !== option ? styles.optionDisabled : ""}`}
             onClick={() => handleSelect(option)}
             disabled={locked}
+            aria-pressed={selected === option}
+            aria-keyshortcuts={String.fromCharCode(65 + i)}
           >
             <span className={styles.optionKey}>{String.fromCharCode(65 + i)}</span>
             <span className={styles.optionText}>{option}</span>
           </button>
         ))}
       </div>
+      {submitError && (
+        <p className={styles.submitError} role="alert">
+          {submitError}. choose again.
+        </p>
+      )}
 
       <div className={styles.bottomBar}>
         <div className={styles.answeredInfo}>
@@ -245,7 +275,7 @@ function ActiveRound({
               <span className={styles.avatarOverflow}>+{connectedPlayers.length - 8}</span>
             )}
           </div>
-          <span className={styles.answeredText}>
+          <span className={styles.answeredText} aria-live="polite">
             {answeredPlayerIds.size}/{connectedPlayers.length} locked in
           </span>
         </div>

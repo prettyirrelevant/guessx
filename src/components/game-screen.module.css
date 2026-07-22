@@ -174,6 +174,13 @@
   gap: 8px;
 }
 
+.submitError {
+  margin: 8px 0;
+  color: var(--accent3);
+  font-size: 13px;
+  text-align: center;
+}
+
 .optionBtn {
   display: flex;
   align-items: center;
@@ -297,17 +304,6 @@
   font-family: var(--font-dm-mono), monospace;
   font-size: 11px;
   color: var(--muted);
-}
-
-.lockedBadge {
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 10px;
-  color: var(--accent2);
-  border: 1px solid var(--accent2);
-  padding: 3px 10px;
-  border-radius: var(--radius-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .streakBadge {

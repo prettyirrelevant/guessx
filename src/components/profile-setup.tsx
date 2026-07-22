@@ -39,6 +39,7 @@ export function ProfileSetup({
     <div className={styles.card}>
       <div className={styles.label}>set up your profile</div>
       <input
+        aria-label="display name"
         className={styles.nameInput}
         placeholder="your name"
         value={name}
