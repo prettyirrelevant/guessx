@@ -12,6 +12,10 @@ import {
 
 const WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php";
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
+const WIKIMEDIA_HEADERS = {
+  "Api-User-Agent": "guessx/1.0 (https://github.com/prettyirrelevant/guessx)",
+};
+const LANDMARK_BATCH_SIZE = 10;
 
 interface WikipediaPage {
   title: string;
@@ -27,6 +31,11 @@ interface CommonsImageInfo {
   thumburl?: string;
   descriptionurl?: string;
   extmetadata?: Record<string, CommonsMetadataValue>;
+}
+
+interface CommonsPage {
+  title: string;
+  imageinfo?: CommonsImageInfo[];
 }
 
 interface LandmarkImage {
@@ -97,7 +106,7 @@ async function resolveWikipediaPage(landmark: string, countryName?: string) {
   });
   const data = await fetchJson<{ query?: { pages?: WikipediaPage[] } }>(
     `${WIKIPEDIA_API}?${params}`,
-    { revalidate: 60 * 60 * 24 },
+    { headers: WIKIMEDIA_HEADERS, revalidate: 60 * 60 * 24, timeoutMs: 12_000 },
   );
 
   return (data.query?.pages ?? [])
@@ -105,21 +114,7 @@ async function resolveWikipediaPage(landmark: string, countryName?: string) {
     .toSorted((a, b) => pageScore(b.title, landmark) - pageScore(a.title, landmark))[0];
 }
 
-async function fetchCommonsImage(filename: string): Promise<LandmarkImage | null> {
-  const params = new URLSearchParams({
-    action: "query",
-    titles: `File:${filename}`,
-    prop: "imageinfo",
-    iiprop: "url|extmetadata",
-    iiurlwidth: "1600",
-    format: "json",
-    formatversion: "2",
-    origin: "*",
-  });
-  const data = await fetchJson<{
-    query?: { pages?: { imageinfo?: CommonsImageInfo[] }[] };
-  }>(`${COMMONS_API}?${params}`, { revalidate: 60 * 60 * 24 });
-  const info = data.query?.pages?.[0]?.imageinfo?.[0];
+function landmarkImageFromInfo(info?: CommonsImageInfo): LandmarkImage | null {
   const mediaUrl = httpsUrl(info?.thumburl ?? info?.url);
   if (!info || !mediaUrl) return null;
 
@@ -134,12 +129,61 @@ async function fetchCommonsImage(filename: string): Promise<LandmarkImage | null
   };
 }
 
+async function fetchCommonsImage(filename: string): Promise<LandmarkImage | null> {
+  const params = new URLSearchParams({
+    action: "query",
+    titles: `File:${filename}`,
+    prop: "imageinfo",
+    iiprop: "url|extmetadata",
+    iiurlwidth: "1600",
+    format: "json",
+    formatversion: "2",
+    origin: "*",
+  });
+  const data = await fetchJson<{ query?: { pages?: CommonsPage[] } }>(`${COMMONS_API}?${params}`, {
+    headers: WIKIMEDIA_HEADERS,
+    revalidate: 60 * 60 * 24,
+    timeoutMs: 12_000,
+  });
+  return landmarkImageFromInfo(data.query?.pages?.[0]?.imageinfo?.[0]);
+}
+
+async function searchCommonsImage(landmark: string, countryName?: string) {
+  const search = countryName ? `intitle:"${landmark}" ${countryName}` : `intitle:"${landmark}"`;
+  const params = new URLSearchParams({
+    action: "query",
+    generator: "search",
+    gsrsearch: search,
+    gsrnamespace: "6",
+    gsrlimit: "5",
+    prop: "imageinfo",
+    iiprop: "url|extmetadata",
+    iiurlwidth: "1600",
+    format: "json",
+    formatversion: "2",
+    origin: "*",
+  });
+  const data = await fetchJson<{ query?: { pages?: CommonsPage[] } }>(`${COMMONS_API}?${params}`, {
+    headers: WIKIMEDIA_HEADERS,
+    revalidate: 60 * 60 * 24,
+    timeoutMs: 12_000,
+  });
+  const page = (data.query?.pages ?? []).toSorted(
+    (a, b) => pageScore(b.title, landmark) - pageScore(a.title, landmark),
+  )[0];
+  return landmarkImageFromInfo(page?.imageinfo?.[0]);
+}
+
 async function fetchLandmarkImage(landmark: string, countryName?: string) {
   try {
     const page =
       (await resolveWikipediaPage(landmark, countryName)) ??
       (countryName ? await resolveWikipediaPage(landmark) : undefined);
-    return page?.pageimage ? await fetchCommonsImage(page.pageimage) : null;
+    if (page?.pageimage) {
+      const image = await fetchCommonsImage(page.pageimage);
+      if (image) return image;
+    }
+    return await searchCommonsImage(landmark, countryName);
   } catch {
     return null;
   }
@@ -157,22 +201,30 @@ export async function prepareLandmarkContent(
     countryCode === "WORLDWIDE"
       ? undefined
       : COUNTRIES.find((country) => country.code === countryCode)?.name;
-  const candidateNames = shuffle(landmarks).slice(0, Math.max(roundsRequested * 2, 15));
-  const imageResults = await mapWithConcurrency(candidateNames, 4, async (landmark) => ({
-    landmark,
-    image: await fetchLandmarkImage(landmark, countryName),
-  }));
+  const preferredCount = Math.min(landmarks.length, Math.max(roundsRequested * 3, 20));
+  const candidateNames = [
+    ...shuffle(landmarks.slice(0, preferredCount)),
+    ...shuffle(landmarks.slice(preferredCount)),
+  ].slice(0, Math.max(roundsRequested * 5, 30));
+  const candidates: Parameters<typeof buildRounds>[0]["candidates"] = [];
 
-  const candidates = imageResults.flatMap((result) => {
-    if (result.status !== "fulfilled" || !result.value.image) return [];
-    return [
-      {
+  for (let start = 0; start < candidateNames.length; start += LANDMARK_BATCH_SIZE) {
+    const batch = candidateNames.slice(start, start + LANDMARK_BATCH_SIZE);
+    const imageResults = await mapWithConcurrency(batch, 4, async (landmark) => ({
+      landmark,
+      image: await fetchLandmarkImage(landmark, countryName),
+    }));
+
+    for (const result of imageResults) {
+      if (result.status !== "fulfilled" || !result.value.image) continue;
+      candidates.push({
         answer: result.value.landmark,
         mediaTitle: result.value.landmark,
         ...result.value.image,
-      },
-    ];
-  });
+      });
+    }
+    if (candidates.length >= roundsRequested) break;
+  }
 
   return buildRounds({
     candidates,

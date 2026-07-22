@@ -21,6 +21,7 @@
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-elevated);
+  font-family: var(--font-dm-mono), monospace;
   animation: scaleIn 0.25s ease;
 }
 
