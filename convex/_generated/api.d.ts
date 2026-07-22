@@ -8,8 +8,6 @@
  * @module
  */
 
-import type * as migrationRunner from "../migrationRunner.js";
-import type * as migrations from "../migrations.js";
 import type * as model from "../model.js";
 import type * as players from "../players.js";
 import type * as preparation from "../preparation.js";
@@ -26,8 +24,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  migrationRunner: typeof migrationRunner;
-  migrations: typeof migrations;
   model: typeof model;
   players: typeof players;
   preparation: typeof preparation;

@@ -21,8 +21,8 @@ export async function listPlayersWithPresence(db: DatabaseReader, roomId: Id<"ro
     const presence = presenceByPlayer.get(player._id);
     return {
       player,
-      status: presence?.status ?? player.status ?? "disconnected",
-      disconnectedAt: presence?.disconnectedAt ?? player.disconnectedAt,
+      status: presence?.status ?? "disconnected",
+      disconnectedAt: presence?.disconnectedAt,
     };
   });
 }

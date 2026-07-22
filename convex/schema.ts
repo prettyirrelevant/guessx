@@ -38,11 +38,6 @@ export default defineSchema({
     totalScore: v.number(),
     streak: v.number(),
     joinedAt: v.number(),
-    // Deprecated presence fields. Keep optional during the online migration,
-    // then remove after existing documents have been cleaned up.
-    status: v.optional(presenceStatusValidator),
-    disconnectedAt: v.optional(v.number()),
-    lastSeenAt: v.optional(v.number()),
   })
     .index("by_roomId", ["roomId"])
     .index("by_roomId_and_userId", ["roomId", "userId"]),

@@ -199,7 +199,7 @@ export const checkDisconnect = internalMutation({
       .query("playerPresence")
       .withIndex("by_playerId", (q) => q.eq("playerId", player._id))
       .unique();
-    if ((presence?.status ?? player.status) !== "disconnected") return null;
+    if (presence?.status !== "disconnected") return null;
 
     const room = await ctx.db.get(args.roomId);
     if (!room || room.state === "abandoned" || room.state === "finished") return null;
@@ -238,9 +238,9 @@ async function expirePresenceHandler(ctx: MutationCtx, playerId: Id<"players">) 
       .withIndex("by_playerId", (q) => q.eq("playerId", playerId))
       .unique(),
   ]);
-  if ((presence?.status ?? player.status) !== "connected") return null;
+  if (presence?.status !== "connected") return null;
 
-  const lastSeenAt = heartbeat?.lastSeenAt ?? player.lastSeenAt ?? 0;
+  const lastSeenAt = heartbeat?.lastSeenAt ?? 0;
   const remaining = PRESENCE_TIMEOUT_MS - (Date.now() - lastSeenAt);
   if (remaining > 0) {
     await ctx.scheduler.runAfter(remaining, internal.scheduling.expirePresence, { playerId });
@@ -298,13 +298,6 @@ async function expirePresenceHandler(ctx: MutationCtx, playerId: Id<"players">) 
 
 export const expirePresence = internalMutation({
   args: { playerId: v.id("players") },
-  handler: async (ctx, args) => expirePresenceHandler(ctx, args.playerId),
-});
-
-// Keep this compatibility entrypoint for jobs scheduled by the previous deploy.
-// It can be removed after the old 30-second jobs have drained.
-export const expireHeartbeat = internalMutation({
-  args: { playerId: v.id("players"), expectedLastSeenAt: v.number() },
   handler: async (ctx, args) => expirePresenceHandler(ctx, args.playerId),
 });
 

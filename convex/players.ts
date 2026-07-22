@@ -14,13 +14,7 @@ export const list = query({
     ]);
 
     return entries.map(({ player, status, disconnectedAt }) => {
-      const {
-        userId,
-        status: _legacyStatus,
-        lastSeenAt: _legacyLastSeenAt,
-        disconnectedAt: _legacyDisconnectedAt,
-        ...publicPlayer
-      } = player;
+      const { userId, ...publicPlayer } = player;
       return {
         ...publicPlayer,
         status,
@@ -43,13 +37,7 @@ export const leaderboard = query({
     return [...players]
       .sort((a, b) => b.totalScore - a.totalScore)
       .map((player) => {
-        const {
-          userId,
-          status: _legacyStatus,
-          lastSeenAt: _legacyLastSeenAt,
-          disconnectedAt: _legacyDisconnectedAt,
-          ...publicPlayer
-        } = player;
+        const { userId, ...publicPlayer } = player;
         return { ...publicPlayer, isCurrent: userId === args.userId };
       });
   },
