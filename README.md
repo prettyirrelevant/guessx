@@ -5,15 +5,16 @@
 [![next.js](https://img.shields.io/badge/next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![convex](https://img.shields.io/badge/convex-realtime-f3694c?style=for-the-badge)](https://convex.dev)
 
-real-time multiplayer guessing game. challenge your friends to guess the song, spot the landmark, or name the actor. fastest finger wins.
+real-time multiplayer guessing game. challenge your friends to guess songs, logos, actors, and flags. fastest finger wins.
 
 **[play now](https://guessx.enio.la?utm_source=github&utm_medium=readme)**
 
 ## game modes
 
-- **music** - listen to a 30-second preview and guess the track. supports up to 3 artists per game (deezer api)
-- **places** - view a landmark photo and name it. 20 countries supported, from the US to Nigeria (Wikipedia and Wikimedia Commons APIs)
-- **actors** - see a headshot and identify the actor. 8 industry categories: hollywood, bollywood, nollywood, k-drama, british cinema, french cinema, anime, telenovela (tmdb api)
+- **music** - listen to a song preview and guess the track
+- **logos** - identify the brand behind a familiar logo
+- **actors** - identify actors from eight film and television industries
+- **flags** - identify national flags from every continent
 
 ## how it works
 
@@ -44,7 +45,6 @@ Provider configuration:
 
 - `TMDB_API_READ_ACCESS_TOKEN` is required for actor mode.
 - `PREPARATION_SECRET` must contain the same private random value in the Next.js and Convex environments. It authenticates the server-side content preparation bridge. Generate one with `openssl rand -hex 32`, add it to `.env.local`, and run `pnpx convex env set PREPARATION_SECRET <value>`.
-- Country metadata is bundled locally. Flag mode uses FlagCDN.
 
 See the in-app `/credits` page for provider attribution and licensing details.
 

@@ -13,6 +13,13 @@ function isHttpsUrl(value: string): boolean {
   }
 }
 
+function isAllowedMediaUrl(value: string): boolean {
+  if (value.length <= 32_768 && value.startsWith("data:image/svg+xml;charset=utf-8,%3Csvg%20")) {
+    return true;
+  }
+  return isHttpsUrl(value);
+}
+
 const accessArgs = {
   roomId: v.id("rooms"),
   userId: v.string(),
@@ -28,7 +35,6 @@ export const config = internalQuery({
       mode: room.mode,
       totalRounds: room.totalRounds,
       artist: room.artist,
-      country: room.country,
       actorCategory: room.actorCategory,
       continent: room.continent,
     };
@@ -53,7 +59,7 @@ export const complete = internalMutation({
           new Set(round.options).size === 4 &&
           round.options.includes(round.correctAnswer) &&
           round.options.every((option) => option.length > 0 && option.length <= 200) &&
-          isHttpsUrl(round.mediaUrl) &&
+          isAllowedMediaUrl(round.mediaUrl) &&
           (!round.attributionUrl || isHttpsUrl(round.attributionUrl)) &&
           (!round.licenseUrl || isHttpsUrl(round.licenseUrl)) &&
           (!round.attribution || round.attribution.length <= 500) &&

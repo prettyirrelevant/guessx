@@ -32,11 +32,12 @@ export const metadata: Metadata = {
   },
   title: "guessX — the multiplayer guessing game",
   description:
-    "challenge your friends in real-time. guess songs, landmarks, actors, or flags. fastest finger wins.",
+    "challenge your friends in real-time. guess songs, logos, actors, or flags. fastest finger wins.",
   keywords: [
     "multiplayer game",
     "guessing game",
     "music quiz",
+    "logo quiz",
     "geography quiz",
     "real-time",
     "party game",
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "guessX — the multiplayer guessing game",
     description:
-      "challenge your friends in real-time. guess songs, landmarks, actors, or flags. fastest finger wins.",
+      "challenge your friends in real-time. guess songs, logos, actors, or flags. fastest finger wins.",
     type: "website",
     siteName: "guessX",
     locale: "en_US",
@@ -53,7 +54,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "guessX — the multiplayer guessing game",
     description:
-      "challenge your friends in real-time. guess songs, landmarks, actors, or flags. fastest finger wins.",
+      "challenge your friends in real-time. guess songs, logos, actors, or flags. fastest finger wins.",
   },
   robots: {
     index: true,

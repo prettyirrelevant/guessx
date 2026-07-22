@@ -55,7 +55,7 @@ export function Lobby({ room, sessionId }: { room: PublicRoom; sessionId: string
         ? "guess the actor"
         : room.mode === "flag"
           ? "name the flag"
-          : "spot the landmark";
+          : "guess the logo";
 
   return (
     <div className={styles.container}>

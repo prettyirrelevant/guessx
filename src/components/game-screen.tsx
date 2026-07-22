@@ -189,13 +189,13 @@ function ActiveRound({
             <AudioPlayer src={round.mediaUrl} />
           </div>
         ) : (
-          <div className={styles.placeSection}>
-            <p className={styles.placeHint}>
+          <div className={styles.visualSection}>
+            <p className={styles.visualHint}>
               {room.mode === "actor"
                 ? "who is this?"
                 : room.mode === "flag"
                   ? "which country?"
-                  : "where is this?"}
+                  : "which logo?"}
             </p>
             {room.mode === "actor" ? (
               <div className={styles.actorImageWrapper}>
@@ -218,12 +218,13 @@ function ActiveRound({
                 />
               </div>
             ) : (
-              <div className={styles.imageWrapper}>
+              <div className={styles.logoImageWrapper}>
                 <Image
                   src={round.mediaUrl}
-                  alt="guess this place"
-                  className={styles.placeImage}
-                  fill
+                  alt="guess this logo"
+                  className={styles.logoImage}
+                  width={240}
+                  height={240}
                   unoptimized
                 />
               </div>

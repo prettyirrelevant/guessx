@@ -64,7 +64,7 @@ export default async function Image() {
       >
         {[
           ["🎧", "music"],
-          ["🌍", "places"],
+          ["®", "logos"],
           ["🎬", "actors"],
           ["🚩", "flags"],
         ].map(([icon, label]) => (

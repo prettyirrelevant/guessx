@@ -96,34 +96,36 @@
   text-align: center;
 }
 
-.placeSection {
+.visualSection {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.placeHint {
+.visualHint {
   font-family: var(--font-dm-mono), monospace;
   font-size: 13px;
   color: var(--muted);
   text-align: center;
 }
 
-.imageWrapper {
-  position: relative;
-  width: 100%;
+.logoImageWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 420px);
+  margin-inline: auto;
+  padding: 40px;
   border-radius: var(--radius-md);
-  overflow: hidden;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 3 / 2;
   box-shadow: var(--shadow-card);
-  background: var(--surface2);
+  background: #fff;
 }
 
-.placeImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  animation: subtleZoom 20s ease infinite alternate;
+.logoImage {
+  width: min(100%, 180px);
+  height: min(100%, 180px);
+  object-fit: contain;
 }
 
 .actorImageWrapper {
@@ -156,15 +158,6 @@
   object-fit: contain;
   border-radius: var(--radius-sm);
   box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
-}
-
-@keyframes subtleZoom {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.05);
-  }
 }
 
 /* options */

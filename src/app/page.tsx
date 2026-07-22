@@ -10,7 +10,6 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { api } from "@convex/_generated/api";
 
 import { useSession } from "@/lib/session";
-import { COUNTRIES } from "@/lib/countries";
 import { CONTINENTS } from "@/lib/continents";
 import { POPULAR_ARTISTS } from "@/lib/artists";
 import { ACTOR_CATEGORIES } from "@/lib/actor-categories";
@@ -40,7 +39,7 @@ export default function Home() {
         <p className={styles.tagline}>
           challenge your friends in real-time.
           <br />
-          guess songs, landmarks, actors, or flags. fastest finger wins.
+          guess songs, logos, actors, or flags. fastest finger wins.
         </p>
 
         {hasProfile && (
@@ -112,14 +111,6 @@ function CreateRoomModal({
   const [maxPlayers, setMaxPlayers] = useState("6");
   const [totalRounds, setTotalRounds] = useState(5);
   const [roundDuration, setRoundDuration] = useState(20_000);
-  const [country, setCountry] = useState(() => {
-    try {
-      const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-      const region = locale.split("-").pop()?.toUpperCase();
-      if (region && COUNTRIES.some((c) => c.code === region)) return region;
-    } catch {}
-    return COUNTRIES[0].code;
-  });
   const [actorCategory, setActorCategory] = useState(ACTOR_CATEGORIES[0].code);
   const [continent, setContinent] = useState(CONTINENTS[0].code);
   const [loading, setLoading] = useState(false);
@@ -198,7 +189,6 @@ function CreateRoomModal({
         totalRounds,
         roundDuration,
         artist: mode === "music" ? selectedArtists.map((a) => a.id).join(",") : undefined,
-        country: mode === "place" ? country : undefined,
         actorCategory: mode === "actor" ? actorCategory : undefined,
         continent: mode === "flag" ? continent : undefined,
         hostName: displayName,
@@ -234,8 +224,8 @@ function CreateRoomModal({
             type="button"
             aria-pressed={mode === "place"}
           >
-            <div className={styles.modeBtnIcon}>🌍</div>
-            <div className={styles.modeBtnLabel}>spot the landmark</div>
+            <div className={styles.modeBtnIcon}>®</div>
+            <div className={styles.modeBtnLabel}>guess the logo</div>
           </button>
           <button
             className={`${styles.modeBtn} ${mode === "actor" ? styles.active : ""}`}
@@ -394,26 +384,6 @@ function CreateRoomModal({
               </button>
             </>
           )}
-        </div>
-      )}
-
-      {mode === "place" && (
-        <div className={styles.formGroup}>
-          <label className={styles.formLabel} htmlFor="country">
-            country
-          </label>
-          <select
-            id="country"
-            className={styles.formSelect}
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-          >
-            {COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.name}
-              </option>
-            ))}
-          </select>
         </div>
       )}
 

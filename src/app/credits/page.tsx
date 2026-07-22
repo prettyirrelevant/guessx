@@ -20,13 +20,14 @@ export default function CreditsPage() {
           <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
         </section>
         <section>
-          <h2>Wikimedia Commons</h2>
+          <h2>Simple Icons</h2>
           <p>
-            Landmark images and their license metadata are supplied by{" "}
-            <a href="https://commons.wikimedia.org" target="_blank" rel="noreferrer">
-              Wikimedia Commons
+            Brand icons are supplied by{" "}
+            <a href="https://simpleicons.org" target="_blank" rel="noreferrer">
+              Simple Icons
             </a>
-            . Each image’s creator, source, and license appear on its answer screen.
+            . Brand names and logos remain trademarks of their respective owners. Their use does not
+            imply endorsement.
           </p>
         </section>
         <section>

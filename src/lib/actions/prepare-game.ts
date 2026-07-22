@@ -7,7 +7,7 @@ import { api } from "@convex/_generated/api";
 
 import { limitPreparation } from "./rate-limit";
 import { prepareMusicContent } from "./music";
-import { prepareLandmarkContent } from "./landmark";
+import { prepareLogoContent } from "./logo";
 import { prepareFlagContent } from "./flag";
 import { prepareActorContent } from "./actor";
 
@@ -39,7 +39,7 @@ export async function prepareGame(access: { roomId: Id<"rooms">; userId: string 
         rounds = await prepareFlagContent(config.continent ?? "", config.totalRounds);
         break;
       case "place":
-        rounds = await prepareLandmarkContent(config.country ?? "", config.totalRounds);
+        rounds = await prepareLogoContent(config.totalRounds);
         break;
     }
 

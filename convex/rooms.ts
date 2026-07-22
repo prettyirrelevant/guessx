@@ -22,7 +22,6 @@ async function createRoom(
     totalRounds: number;
     roundDuration: number;
     artist?: string;
-    country?: string;
     actorCategory?: string;
     continent?: string;
     hostName: string;
@@ -42,7 +41,6 @@ async function createRoom(
     roundDuration: args.roundDuration,
     currentRound: 0,
     artist: args.artist,
-    country: args.country,
     actorCategory: args.actorCategory,
     continent: args.continent,
     prepStartedAt: now,
@@ -79,7 +77,6 @@ export const create = mutation({
     totalRounds: v.number(),
     roundDuration: v.number(),
     artist: v.optional(v.string()),
-    country: v.optional(v.string()),
     actorCategory: v.optional(v.string()),
     continent: v.optional(v.string()),
     hostName: v.string(),
@@ -266,7 +263,6 @@ export const playAgain = mutation({
       totalRounds: oldRoom.totalRounds,
       roundDuration: oldRoom.roundDuration,
       artist: oldRoom.artist,
-      country: oldRoom.country,
       actorCategory: oldRoom.actorCategory,
       continent: oldRoom.continent,
       hostName: args.hostName,

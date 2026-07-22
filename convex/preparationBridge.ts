@@ -19,7 +19,6 @@ type PreparationConfig = {
   mode: "music" | "place" | "actor" | "flag";
   totalRounds: number;
   artist?: string;
-  country?: string;
   actorCategory?: string;
   continent?: string;
 };

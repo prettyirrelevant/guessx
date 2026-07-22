@@ -7,7 +7,7 @@ export const DISCONNECT_GRACE_MS = 45_000;
 
 export const roomModeValidator = v.union(
   v.literal("music"),
-  v.literal("place"),
+  v.literal("place"), // Persisted identifier for logo mode.
   v.literal("actor"),
   v.literal("flag"),
 );

@@ -14,7 +14,7 @@ import styles from "./preparing-screen.module.css";
 
 const STEPS: Record<string, string[]> = {
   music: ["setting up your room", "choosing your tracks", "preparing the choices"],
-  place: ["setting up your room", "picking your locations", "preparing the choices"],
+  place: ["setting up your room", "choosing your logos", "preparing the choices"],
   actor: ["setting up your room", "finding your actors", "preparing the choices"],
   flag: ["setting up your room", "raising the flags", "preparing the choices"],
 };

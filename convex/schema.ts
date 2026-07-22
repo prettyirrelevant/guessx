@@ -21,6 +21,7 @@ export default defineSchema({
     roundDuration: v.number(),
     currentRound: v.number(),
     artist: v.optional(v.string()),
+    // Kept temporarily so existing pre-logo room documents remain valid.
     country: v.optional(v.string()),
     actorCategory: v.optional(v.string()),
     continent: v.optional(v.string()),

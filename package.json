@@ -19,7 +19,8 @@
     "lucide-react": "^0.577.0",
     "next": "^15",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "simple-icons": "^16.27.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
