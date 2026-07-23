@@ -172,8 +172,6 @@ export async function prepareActorContent(
     answer: a.name,
     mediaUrl: a.photo,
     mediaTitle: a.name,
-    attribution: "Data and image supplied by TMDB",
-    attributionUrl: `https://www.themoviedb.org/person/${a.id}`,
   }));
 
   return buildRounds({

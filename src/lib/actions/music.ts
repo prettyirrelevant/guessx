@@ -114,7 +114,6 @@ export async function prepareMusicContent(
 
   // round-robin across artists to build candidate list
   const candidates: {
-    id: number;
     answer: string;
     mediaUrl: string;
     mediaTitle: string;
@@ -134,7 +133,6 @@ export async function prepareMusicContent(
         if (seen.has(track.title)) continue;
         seen.add(track.title);
         candidates.push({
-          id: track.id,
           answer: track.title,
           mediaUrl: track.preview!,
           mediaTitle: track.title,
@@ -176,8 +174,6 @@ export async function prepareMusicContent(
       mediaUrl: candidate.mediaUrl,
       mediaTitle: candidate.mediaTitle,
       mediaArtist: candidate.mediaArtist,
-      attribution: "Preview supplied by Deezer",
-      attributionUrl: `https://www.deezer.com/track/${candidate.id}`,
       isFinal: rounds.length === roundsRequested - 1,
     });
   }

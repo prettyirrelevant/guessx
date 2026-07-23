@@ -307,6 +307,53 @@ describe("early round end", () => {
     expect(round?.state).toBe("revealing");
   });
 
+  it("recovers when a completed round misses the inline transition", async () => {
+    const t = convexTest(schema, modules);
+    const { roundId, players } = await setupActiveRound(t);
+
+    await t.run(async (ctx) => {
+      for (const [index, player] of players.entries()) {
+        await ctx.db.insert("answers", {
+          roundId,
+          playerId: player._id,
+          selectedOption: index === 0 ? "Song A" : "Song B",
+          correct: index === 0,
+          submittedAt: Date.now() + index,
+          pointsAwarded: 0,
+        });
+      }
+    });
+
+    const ended = await t.mutation(internal.scheduling.endRoundIfReady, { roundId });
+    const round = await t.run(async (ctx) => ctx.db.get(roundId));
+
+    expect(ended).toBe(true);
+    expect(round?.state).toBe("revealing");
+  });
+
+  it("ends when every player answered during a temporary presence gap", async () => {
+    const t = convexTest(schema, modules);
+    const { roundId, players } = await setupActiveRound(t);
+    const host = players.find((player) => player.userId === "user-host")!;
+    const player2 = players.find((player) => player.userId === "user-2")!;
+
+    await disconnectPlayer(t, host._id);
+    await disconnectPlayer(t, player2._id);
+    await submitAnswer(t, {
+      roundId,
+      playerId: host._id,
+      selectedOption: "Song A",
+    });
+    await submitAnswer(t, {
+      roundId,
+      playerId: player2._id,
+      selectedOption: "Song B",
+    });
+
+    const round = await t.run(async (ctx) => ctx.db.get(roundId));
+    expect(round?.state).toBe("revealing");
+  });
+
   it("does not end round early when only some players have answered", async () => {
     const t = convexTest(schema, modules);
     const { roomId, roomCode } = await t.mutation(api.rooms.create, {

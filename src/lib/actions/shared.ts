@@ -5,10 +5,6 @@ export interface RoundContent {
   mediaUrl: string;
   mediaTitle?: string;
   mediaArtist?: string;
-  attribution?: string;
-  attributionUrl?: string;
-  license?: string;
-  licenseUrl?: string;
   isFinal: boolean;
 }
 
@@ -97,10 +93,6 @@ export function buildRounds({
     mediaUrl: string;
     mediaTitle?: string;
     mediaArtist?: string;
-    attribution?: string;
-    attributionUrl?: string;
-    license?: string;
-    licenseUrl?: string;
   }[];
   distractorNames: string[];
   totalRounds: number;
@@ -131,10 +123,6 @@ export function buildRounds({
       mediaUrl: candidate.mediaUrl,
       mediaTitle: candidate.mediaTitle,
       mediaArtist: candidate.mediaArtist,
-      attribution: candidate.attribution,
-      attributionUrl: candidate.attributionUrl,
-      license: candidate.license,
-      licenseUrl: candidate.licenseUrl,
       isFinal: rounds.length === totalRounds - 1,
     });
   }

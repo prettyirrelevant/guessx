@@ -143,10 +143,6 @@ function ActiveRound({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleSelect, round.options]);
 
-  const connectedPlayers = useMemo(
-    () => players.filter((p) => p.status === "connected"),
-    [players],
-  );
   const answeredPlayerIds = useMemo(
     () => new Set(answers?.filter((a) => "playerId" in a).map((a) => a.playerId) ?? []),
     [answers],
@@ -259,7 +255,7 @@ function ActiveRound({
       <div className={styles.bottomBar}>
         <div className={styles.answeredInfo}>
           <div className={styles.answeredAvatars}>
-            {connectedPlayers.slice(0, 8).map((player) => (
+            {players.slice(0, 8).map((player) => (
               <Image
                 key={player._id}
                 src={getAvatarUrl(player.avatar)}
@@ -272,12 +268,12 @@ function ActiveRound({
                 height={28}
               />
             ))}
-            {connectedPlayers.length > 8 && (
-              <span className={styles.avatarOverflow}>+{connectedPlayers.length - 8}</span>
+            {players.length > 8 && (
+              <span className={styles.avatarOverflow}>+{players.length - 8}</span>
             )}
           </div>
           <span className={styles.answeredText} aria-live="polite">
-            {answeredPlayerIds.size}/{connectedPlayers.length} locked in
+            {answeredPlayerIds.size}/{players.length} locked in
           </span>
         </div>
         {currentPlayer.streak >= 3 && (

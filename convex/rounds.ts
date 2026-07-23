@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 
-import { endRoundHandler, endRevealHandler } from "./scheduling";
-import { listPlayersWithPresence } from "./presence";
+import { endRoundIfReadyHandler, endRevealHandler } from "./scheduling";
 import { MAX_PLAYERS } from "./model";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 export const get = query({
   args: {
@@ -117,25 +117,13 @@ export const submitAnswer = mutation({
       pointsAwarded: 0,
     });
 
-    // check if all connected players have answered to end round early
-    const connectedPlayerIds = new Set(
-      (await listPlayersWithPresence(ctx.db, round.roomId))
-        .filter(({ status }) => status === "connected")
-        .map(({ player }) => player._id),
-    );
-    const connectedCount = connectedPlayerIds.size;
-    if (connectedCount > 0) {
-      const answers = await ctx.db
-        .query("answers")
-        .withIndex("by_roundId", (q) => q.eq("roundId", args.roundId))
-        .take(MAX_PLAYERS);
-
-      const connectedAnswerCount = answers.filter((answer) =>
-        connectedPlayerIds.has(answer.playerId),
-      ).length;
-      if (connectedAnswerCount >= connectedCount) {
-        await endRoundHandler(ctx, args.roundId);
-      }
+    const ended = await endRoundIfReadyHandler(ctx, args.roundId);
+    if (!ended) {
+      // Recheck after this transaction commits so concurrent answers cannot
+      // leave a complete round waiting for its timer.
+      await ctx.scheduler.runAfter(0, internal.scheduling.endRoundIfReady, {
+        roundId: args.roundId,
+      });
     }
 
     return { success: true };

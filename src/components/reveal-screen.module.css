@@ -115,19 +115,6 @@
   color: var(--accent);
 }
 
-.attribution {
-  display: block;
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.attribution a {
-  color: inherit;
-  text-underline-offset: 2px;
-}
-
 /* player results */
 .playerResults {
   display: flex;

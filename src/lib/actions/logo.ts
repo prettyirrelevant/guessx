@@ -248,8 +248,6 @@ export async function prepareLogoContent(totalRounds: number): Promise<RoundCont
     ]),
     mediaUrl: svgDataUrl(logo.icon),
     mediaTitle: logo.answer,
-    attribution: "Logo supplied by Simple Icons",
-    attributionUrl: "https://simpleicons.org/",
     isFinal: index === count - 1,
   }));
 }

@@ -121,9 +121,45 @@ export async function endRoundHandler(ctx: MutationCtx, roundId: Id<"rounds">) {
   return null;
 }
 
+export async function endRoundIfReadyHandler(ctx: MutationCtx, roundId: Id<"rounds">) {
+  const round = await ctx.db.get(roundId);
+  if (!round || round.state !== "active") return false;
+
+  const [players, answers] = await Promise.all([
+    listPlayersWithPresence(ctx.db, round.roomId),
+    ctx.db
+      .query("answers")
+      .withIndex("by_roundId", (q) => q.eq("roundId", roundId))
+      .take(MAX_PLAYERS),
+  ]);
+  const answeredPlayerIds = new Set(answers.map((answer) => answer.playerId));
+  if (players.length > 0 && players.every(({ player }) => answeredPlayerIds.has(player._id))) {
+    await endRoundHandler(ctx, roundId);
+    return true;
+  }
+
+  const connectedPlayerIds = new Set(
+    players.filter(({ status }) => status === "connected").map(({ player }) => player._id),
+  );
+  if (connectedPlayerIds.size === 0) return false;
+
+  const connectedAnswerCount = answers.filter((answer) =>
+    connectedPlayerIds.has(answer.playerId),
+  ).length;
+  if (connectedAnswerCount < connectedPlayerIds.size) return false;
+
+  await endRoundHandler(ctx, roundId);
+  return true;
+}
+
 export const endRound = internalMutation({
   args: { roundId: v.id("rounds") },
   handler: async (ctx, args) => endRoundHandler(ctx, args.roundId),
+});
+
+export const endRoundIfReady = internalMutation({
+  args: { roundId: v.id("rounds") },
+  handler: async (ctx, args) => endRoundIfReadyHandler(ctx, args.roundId),
 });
 
 export async function endRevealHandler(ctx: MutationCtx, roundId: Id<"rounds">) {
@@ -267,26 +303,7 @@ async function expirePresenceHandler(ctx: MutationCtx, playerId: Id<"players">) 
         q.eq("roomId", room._id).eq("roundNumber", room.currentRound),
       )
       .unique();
-    if (round?.state === "active") {
-      const [players, answers] = await Promise.all([
-        listPlayersWithPresence(ctx.db, room._id),
-        ctx.db
-          .query("answers")
-          .withIndex("by_roundId", (q) => q.eq("roundId", round._id))
-          .take(MAX_PLAYERS),
-      ]);
-      const connectedPlayerIds = new Set(
-        players
-          .filter(({ status }) => status === "connected")
-          .map(({ player: candidate }) => candidate._id),
-      );
-      const connectedAnswerCount = answers.filter((answer) =>
-        connectedPlayerIds.has(answer.playerId),
-      ).length;
-      if (connectedPlayerIds.size > 0 && connectedAnswerCount >= connectedPlayerIds.size) {
-        await endRoundHandler(ctx, round._id);
-      }
-    }
+    if (round?.state === "active") await endRoundIfReadyHandler(ctx, round._id);
   }
 
   await ctx.scheduler.runAfter(DISCONNECT_GRACE_MS, internal.scheduling.checkDisconnect, {

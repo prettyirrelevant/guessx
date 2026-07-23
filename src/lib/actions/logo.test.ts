@@ -16,7 +16,6 @@ describe("prepareLogoContent", () => {
       expect(round.options).toContain(round.correctAnswer);
       expect(round.mediaUrl).toMatch(/^data:image\/svg\+xml;charset=utf-8,%3Csvg%20/);
       expect(decodeURIComponent(round.mediaUrl)).not.toContain("<title>");
-      expect(round.attributionUrl).toBe("https://simpleicons.org/");
       expect(round.isFinal).toBe(index === 9);
     }
   });

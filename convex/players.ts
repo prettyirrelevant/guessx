@@ -63,6 +63,21 @@ export const heartbeat = mutation({
       await ctx.scheduler.runAfter(PRESENCE_TIMEOUT_MS, internal.scheduling.expirePresence, {
         playerId: player._id,
       });
+
+      const room = await ctx.db.get(player.roomId);
+      if (room?.state === "in_progress") {
+        const round = await ctx.db
+          .query("rounds")
+          .withIndex("by_roomId_and_roundNumber", (q) =>
+            q.eq("roomId", room._id).eq("roundNumber", room.currentRound),
+          )
+          .unique();
+        if (round?.state === "active") {
+          await ctx.scheduler.runAfter(0, internal.scheduling.endRoundIfReady, {
+            roundId: round._id,
+          });
+        }
+      }
     }
     return null;
   },

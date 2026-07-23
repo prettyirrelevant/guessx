@@ -129,29 +129,6 @@ export function RevealScreen({
       <div className={styles.answerReveal}>
         <span className={styles.answerLabel}>the answer</span>
         <span className={styles.answerTitle}>{answerTitle}</span>
-        {(round.attribution || round.license) && (
-          <span className={styles.attribution}>
-            {round.attributionUrl ? (
-              <a href={round.attributionUrl} target="_blank" rel="noreferrer">
-                {round.attribution}
-              </a>
-            ) : (
-              round.attribution
-            )}
-            {round.license && (
-              <>
-                {" · "}
-                {round.licenseUrl ? (
-                  <a href={round.licenseUrl} target="_blank" rel="noreferrer">
-                    {round.license}
-                  </a>
-                ) : (
-                  round.license
-                )}
-              </>
-            )}
-          </span>
-        )}
       </div>
 
       <div className={styles.playerResults}>
