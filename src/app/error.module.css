@@ -50,6 +50,11 @@
   text-wrap: balance;
 }
 
+/* not-found: give the single line room before the link, since it has no hint */
+.lead {
+  margin-bottom: var(--space-5);
+}
+
 .actions {
   display: flex;
   gap: var(--space-3);
