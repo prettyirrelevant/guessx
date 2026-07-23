@@ -127,7 +127,7 @@ export function AudioPlayer({ src }: { src: string }) {
   return (
     <div className={styles.player}>
       <button
-        className={`${styles.playBtn} ${playing ? styles.playing : ""}`}
+        className={styles.playBtn}
         onClick={() => void toggle()}
         aria-label={playing ? "pause" : "play"}
       >

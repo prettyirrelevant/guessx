@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { ChevronLeft } from "lucide-react";
 
 import styles from "./modal-dialog.module.css";
 
 export function ModalDialog({
   title,
   onClose,
+  onBack,
   children,
 }: {
   title: string;
   onClose: () => void;
+  onBack?: () => void;
   children: ReactNode;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -67,9 +70,16 @@ export function ModalDialog({
         tabIndex={-1}
       >
         <div className={styles.header}>
-          <h2 className={styles.title} id={titleId}>
-            {title}
-          </h2>
+          <div className={styles.headerLeft}>
+            {onBack && (
+              <button className={styles.back} onClick={onBack} aria-label="back">
+                <ChevronLeft size={20} />
+              </button>
+            )}
+            <h2 className={styles.title} id={titleId}>
+              {title}
+            </h2>
+          </div>
           <button className={styles.close} onClick={onClose} aria-label="close">
             ✕
           </button>

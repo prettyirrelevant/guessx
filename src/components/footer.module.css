@@ -2,15 +2,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 12px 24px;
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 11px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
   color: var(--muted2);
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-label);
 }
 
 .credit {
+  color: var(--muted2);
 }
 
 .author {
@@ -18,19 +19,12 @@
   transition: color var(--transition-fast);
 }
 
-.author:hover {
-  color: var(--text);
-}
-
 .textLink {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
   color: var(--muted);
-}
-
-.textLink:hover {
-  color: var(--text);
+  transition: color var(--transition-fast);
 }
 
 .dot {
@@ -39,7 +33,7 @@
 
 .links {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .link {
@@ -53,6 +47,10 @@
   transition: color var(--transition-fast);
 }
 
-.link:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .author:hover,
+  .textLink:hover,
+  .link:hover {
+    color: var(--text);
+  }
 }

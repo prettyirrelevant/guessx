@@ -5,10 +5,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.7);
+  padding: var(--space-5);
+  background: var(--scrim);
   backdrop-filter: blur(8px);
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn var(--dur-fast) var(--ease-out);
 }
 
 .dialog {
@@ -16,28 +16,63 @@
   max-width: 440px;
   max-height: 90dvh;
   overflow-y: auto;
-  padding: 32px;
+  padding: var(--space-6);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-elevated);
-  font-family: var(--font-dm-mono), monospace;
-  animation: scaleIn 0.25s ease;
+  font-family: var(--font-text);
+  animation: scaleIn var(--dur-base) var(--ease-out);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.back {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  margin-left: calc(-1 * var(--space-2));
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  flex-shrink: 0;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .back:hover {
+    color: var(--text);
+    background: var(--surface2);
+  }
 }
 
 .title {
-  color: #fff;
-  font-family: var(--font-syne), sans-serif;
-  font-size: 22px;
+  color: var(--text);
+  font-family: var(--font-display);
+  /* scale down on narrow screens so the longest mode label stays on one line */
+  font-size: clamp(1rem, 4.4vw, var(--fs-display-md));
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .close {
@@ -48,24 +83,28 @@
   justify-content: center;
   border-radius: var(--radius-sm);
   color: var(--muted);
-  font-size: 18px;
-  transition: all var(--transition-fast);
+  font-size: var(--fs-title);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
-.close:hover {
-  color: var(--text);
-  background: var(--surface2);
+@media (hover: hover) {
+  .close:hover {
+    color: var(--text);
+    background: var(--surface2);
+  }
 }
 
 @media (max-width: 480px) {
   .dialog {
-    padding: 24px;
+    padding: var(--space-5) var(--space-4);
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .overlay {
-    background: #050505;
+    background: var(--bg);
     backdrop-filter: none;
   }
 }

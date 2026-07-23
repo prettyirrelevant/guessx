@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ChevronLeft } from "lucide-react";
 
 import styles from "./credits.module.css";
 
@@ -9,7 +10,8 @@ export default function CreditsPage() {
   return (
     <main className={styles.main}>
       <Link href="/" className={styles.back}>
-        ← back to guessX
+        <ChevronLeft size={16} />
+        back
       </Link>
       <h1>credits</h1>
       <div className={styles.list}>

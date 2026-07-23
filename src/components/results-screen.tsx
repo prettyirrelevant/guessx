@@ -53,8 +53,8 @@ export function ResultsScreen({ room, sessionId }: { room: PublicRoom; sessionId
           {leaderboard.slice(0, 3).map((player, i) => (
             <div
               key={player._id}
-              className={`${styles.podiumSlot} ${
-                i === 0 ? styles.first : i === 1 ? styles.second : styles.third
+              className={`${styles.podiumSlot} ${i === 0 ? styles.first : ""} ${
+                player.isCurrent ? styles.podiumYou : ""
               }`}
               style={{ animationDelay: `${i * 0.15}s` }}
             >
@@ -68,29 +68,32 @@ export function ResultsScreen({ room, sessionId }: { room: PublicRoom; sessionId
               />
               <div className={styles.podiumName}>{player.displayName}</div>
               <div className={styles.podiumScore}>{player.totalScore}</div>
+              {player.isCurrent && <span className={styles.podiumYouTag}>you</span>}
             </div>
           ))}
         </div>
 
-        <div className={styles.fullList}>
-          {leaderboard.map((player, i) => (
-            <div
-              key={player._id}
-              className={`${styles.listRow} ${player.isCurrent ? styles.listYou : ""}`}
-            >
-              <span className={styles.listRank}>#{i + 1}</span>
-              <Image
-                src={getAvatarUrl(player.avatar)}
-                alt={player.displayName}
-                className={styles.listAvatar}
-                width={28}
-                height={28}
-              />
-              <span className={styles.listName}>{player.displayName}</span>
-              <span className={styles.listScore}>{player.totalScore}</span>
-            </div>
-          ))}
-        </div>
+        {leaderboard.length > 3 && (
+          <div className={styles.fullList}>
+            {leaderboard.slice(3).map((player, i) => (
+              <div
+                key={player._id}
+                className={`${styles.listRow} ${player.isCurrent ? styles.listYou : ""}`}
+              >
+                <span className={styles.listRank}>#{i + 4}</span>
+                <Image
+                  src={getAvatarUrl(player.avatar)}
+                  alt={player.displayName}
+                  className={styles.listAvatar}
+                  width={28}
+                  height={28}
+                />
+                <span className={styles.listName}>{player.displayName}</span>
+                <span className={styles.listScore}>{player.totalScore}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className={styles.actions}>
           {isHost ? (

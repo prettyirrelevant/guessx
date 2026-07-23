@@ -1,9 +1,7 @@
 .container {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 4px;
-  margin-bottom: 20px;
+  gap: var(--space-3);
 }
 
 .beads {
@@ -14,9 +12,12 @@
 
 .bead {
   flex: 1;
-  height: 8px;
-  border-radius: 4px;
-  transition: all 0.3s ease;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--surface2);
+  transition:
+    background var(--dur-base) var(--ease-out),
+    opacity var(--dur-base) var(--ease-out);
 }
 
 .beadActive {
@@ -24,12 +25,12 @@
 }
 
 .beadWarning {
-  background: #f5c842;
+  background: var(--warning);
 }
 
 .beadUrgent {
-  background: var(--accent3);
-  animation: beadPulse 0.6s ease infinite;
+  background: var(--danger);
+  animation: pulse 0.6s ease infinite;
 }
 
 .beadInactive {
@@ -37,29 +38,19 @@
 }
 
 .time {
-  font-family: var(--font-syne), sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--text);
-  min-width: 36px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-body);
+  color: var(--muted);
+  min-width: 40px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .timeWarning {
-  color: #f5c842;
+  color: var(--warning);
 }
 
 .timeUrgent {
-  color: var(--accent3);
-  animation: pulse 0.5s ease infinite;
-}
-
-@keyframes beadPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  color: var(--danger);
 }
