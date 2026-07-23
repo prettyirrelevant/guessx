@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
+import { Check } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 
 import { Doc, Id } from "@convex/_generated/dataModel";
@@ -153,133 +154,135 @@ function ActiveRound({
       <div className={styles.finalIntro}>
         <div className={styles.finalIntroContent}>
           <div className={styles.finalLabel}>final round</div>
-          <div className={styles.finalMultiplier}>2x points</div>
+          <div className={styles.finalMultiplier}>2×</div>
           <p className={styles.finalSubtext}>everything counts double. including mistakes.</p>
         </div>
       </div>
     );
   }
 
+  const prompt =
+    room.mode === "music"
+      ? "name that track"
+      : room.mode === "actor"
+        ? "who is this?"
+        : room.mode === "flag"
+          ? "which country?"
+          : "which logo?";
+
   return (
     <div className={styles.container}>
-      <div className={styles.topBar}>
-        <div className={styles.roundInfo}>
-          <span className={styles.roundLabel}>round</span>
-          <span className={styles.roundNumber}>
+      <header className={styles.status}>
+        <div className={styles.statusItem}>
+          <span className={styles.statusLabel}>round</span>
+          <span className={styles.statusValue}>
             {round.roundNumber}/{room.totalRounds}
           </span>
         </div>
-        {round.isFinal && <span className={styles.finalBadge}>2x</span>}
-        <div className={styles.scoreInfo}>
-          <span className={styles.scoreValue}>{currentPlayer.totalScore}</span>
-          <span className={styles.scoreLabel}>pts</span>
+        {round.isFinal && (
+          <span className={styles.finalChip}>
+            2× <span className={styles.finalChipLabel}>final</span>
+          </span>
+        )}
+        <div className={`${styles.statusItem} ${styles.statusScore}`}>
+          <span className={styles.statusValue}>{currentPlayer.totalScore}</span>
+          <span className={styles.statusLabel}>pts</span>
         </div>
-      </div>
+      </header>
 
       <TimerBar startedAt={round.startedAt} endsAt={round.endsAt} />
 
-      <div className={styles.mediaSection}>
+      <main className={styles.stageMain}>
+        <p className={styles.prompt}>{prompt}</p>
         {room.mode === "music" ? (
-          <div className={styles.audioWrapper}>
-            <p className={styles.audioHint}>name that track</p>
-            <AudioPlayer src={round.mediaUrl} />
+          <AudioPlayer src={round.mediaUrl} />
+        ) : room.mode === "actor" ? (
+          <div className={styles.actorCard}>
+            <Image
+              src={round.mediaUrl}
+              alt="guess this actor"
+              className={styles.actorImg}
+              width={400}
+              height={500}
+            />
+          </div>
+        ) : room.mode === "flag" ? (
+          <div className={styles.flagCard}>
+            <Image
+              src={round.mediaUrl}
+              alt="guess this flag"
+              className={styles.flagImg}
+              width={480}
+              height={320}
+            />
           </div>
         ) : (
-          <div className={styles.visualSection}>
-            <p className={styles.visualHint}>
-              {room.mode === "actor"
-                ? "who is this?"
-                : room.mode === "flag"
-                  ? "which country?"
-                  : "which logo?"}
-            </p>
-            {room.mode === "actor" ? (
-              <div className={styles.actorImageWrapper}>
-                <Image
-                  src={round.mediaUrl}
-                  alt="guess this actor"
-                  className={styles.actorImage}
-                  width={400}
-                  height={500}
-                />
-              </div>
-            ) : room.mode === "flag" ? (
-              <div className={styles.flagImageWrapper}>
-                <Image
-                  src={round.mediaUrl}
-                  alt="guess this flag"
-                  className={styles.flagImage}
-                  width={480}
-                  height={320}
-                />
-              </div>
-            ) : (
-              <div className={styles.logoImageWrapper}>
-                <Image
-                  src={round.mediaUrl}
-                  alt="guess this logo"
-                  className={styles.logoImage}
-                  width={240}
-                  height={240}
-                  unoptimized
-                />
-              </div>
-            )}
+          <div className={styles.logoCard}>
+            <Image
+              src={round.mediaUrl}
+              alt="guess this logo"
+              className={styles.logoImg}
+              width={240}
+              height={240}
+              unoptimized
+            />
           </div>
+        )}
+      </main>
+
+      <div className={styles.lockRow}>
+        <div className={styles.lockAvatars}>
+          {players.slice(0, 8).map((player) => (
+            <Image
+              key={player._id}
+              src={getAvatarUrl(player.avatar)}
+              alt={player.displayName}
+              title={player.displayName}
+              className={`${styles.lockAvatar} ${
+                answeredPlayerIds.has(player._id) ? styles.avatarLocked : styles.avatarWaiting
+              }`}
+              width={26}
+              height={26}
+            />
+          ))}
+          {players.length > 8 && (
+            <span className={styles.avatarOverflow}>+{players.length - 8}</span>
+          )}
+        </div>
+        <span className={styles.lockText} aria-live="polite">
+          {answeredPlayerIds.size}/{players.length} locked in
+        </span>
+        {currentPlayer.streak >= 3 && (
+          <span className={styles.streakChip}>🔥 {currentPlayer.streak}</span>
         )}
       </div>
 
-      <div className={styles.options} aria-label="Answer choices">
-        {round.options.map((option, i) => (
-          <button
-            key={option}
-            className={`${styles.optionBtn} ${
-              selected === option ? styles.optionSelected : ""
-            } ${locked && selected !== option ? styles.optionDisabled : ""}`}
-            onClick={() => handleSelect(option)}
-            disabled={locked}
-            aria-pressed={selected === option}
-            aria-keyshortcuts={String.fromCharCode(65 + i)}
-          >
-            <span className={styles.optionKey}>{String.fromCharCode(65 + i)}</span>
-            <span className={styles.optionText}>{option}</span>
-          </button>
-        ))}
+      <div className={styles.answers} aria-label="Answer choices">
+        {round.options.map((option, i) => {
+          const isSelected = selected === option;
+          return (
+            <button
+              key={option}
+              className={`${styles.optionBtn} ${isSelected ? styles.optionSelected : ""} ${
+                locked && !isSelected ? styles.optionDisabled : ""
+              }`}
+              onClick={() => handleSelect(option)}
+              disabled={locked}
+              aria-pressed={isSelected}
+              aria-keyshortcuts={String.fromCharCode(65 + i)}
+            >
+              <span className={styles.optionKey}>{String.fromCharCode(65 + i)}</span>
+              <span className={styles.optionText}>{option}</span>
+              {isSelected && <Check size={18} className={styles.optionCheck} aria-hidden />}
+            </button>
+          );
+        })}
       </div>
       {submitError && (
         <p className={styles.submitError} role="alert">
           {submitError}. choose again.
         </p>
       )}
-
-      <div className={styles.bottomBar}>
-        <div className={styles.answeredInfo}>
-          <div className={styles.answeredAvatars}>
-            {players.slice(0, 8).map((player) => (
-              <Image
-                key={player._id}
-                src={getAvatarUrl(player.avatar)}
-                alt={player.displayName}
-                title={player.displayName}
-                className={`${styles.answeredAvatar} ${
-                  answeredPlayerIds.has(player._id) ? styles.avatarLocked : styles.avatarWaiting
-                }`}
-                width={28}
-                height={28}
-              />
-            ))}
-            {players.length > 8 && (
-              <span className={styles.avatarOverflow}>+{players.length - 8}</span>
-            )}
-          </div>
-          <span className={styles.answeredText} aria-live="polite">
-            {answeredPlayerIds.size}/{players.length} locked in
-          </span>
-        </div>
-        {currentPlayer.streak >= 3 && (
-          <span className={styles.streakBadge}>🔥 {currentPlayer.streak} streak</span>
-        )}
-      </div>
     </div>
   );
 }

@@ -1,11 +1,11 @@
 .player {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-4);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   box-shadow: var(--shadow-card);
 }
 
@@ -15,26 +15,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--accent);
   color: var(--bg);
   flex-shrink: 0;
-  transition: all var(--transition-fast);
-  box-shadow: var(--glow-accent);
+  transition: transform var(--dur-feedback) var(--ease-out);
 }
 
-.playBtn:hover {
-  transform: scale(1.08);
-  box-shadow: 0 0 24px rgba(200, 241, 53, 0.5);
+@media (hover: hover) {
+  .playBtn:hover {
+    transform: scale(1.06);
+  }
 }
 
-.playBtn.playing {
-  background: var(--accent2);
-  box-shadow: var(--glow-accent2);
-}
-
-.playBtn.playing:hover {
-  box-shadow: 0 0 24px rgba(91, 140, 255, 0.5);
+.playBtn:active {
+  transform: scale(0.96);
 }
 
 .controls {
@@ -46,7 +41,7 @@
   position: relative;
   height: 40px;
   cursor: pointer;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   touch-action: none;
 }
 
@@ -102,9 +97,10 @@
 }
 
 .time {
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label-sm);
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .muteBtn {
@@ -119,6 +115,12 @@
   transition: color var(--transition-fast);
 }
 
+@media (hover: hover) {
+  .muteBtn:hover {
+    color: var(--text);
+  }
+}
+
 .srError {
   position: absolute;
   width: 1px;
@@ -127,14 +129,10 @@
   clip-path: inset(50%);
 }
 
-.muteBtn:hover {
-  color: var(--text);
-}
-
 @media (max-width: 480px) {
   .player {
-    padding: 12px 14px;
-    gap: 10px;
+    padding: var(--space-3);
+    gap: var(--space-3);
   }
 
   .waveform {

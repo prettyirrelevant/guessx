@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-5);
 }
 
 .srOnly {
@@ -18,33 +18,28 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 40px 32px;
+  padding: var(--space-8) var(--space-6);
   max-width: 400px;
   width: 100%;
   text-align: center;
   box-shadow: var(--shadow-elevated);
-  animation: scaleIn 0.3s ease;
+  animation: scaleIn var(--dur-base) var(--ease-out);
 }
 
 .roomCode {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-syne), sans-serif;
+  gap: var(--space-3);
+  font-family: var(--font-display);
   font-weight: 800;
-  font-size: 36px;
+  font-size: var(--fs-display-lg);
   color: var(--accent);
   letter-spacing: 0.08em;
-  margin-bottom: 4px;
-  cursor: pointer;
-  padding: 4px 12px;
+  padding: var(--space-1) var(--space-3);
+  min-height: 44px;
   border-radius: var(--radius-sm);
   transition: background var(--transition-fast);
   white-space: nowrap;
-}
-
-.roomCode:hover {
-  background: var(--surface2);
 }
 
 .roomCode svg {
@@ -52,45 +47,51 @@
   transition: color var(--transition-fast);
 }
 
-.roomCode:hover svg {
-  color: var(--accent);
+@media (hover: hover) {
+  .roomCode:hover {
+    background: var(--surface2);
+  }
+
+  .roomCode:hover svg {
+    color: var(--accent);
+  }
 }
 
 .hint {
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
   color: var(--muted);
-  margin-bottom: 32px;
+  margin-bottom: var(--space-6);
 }
 
 .steps {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   text-align: left;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-5);
 }
 
 .step {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 13px;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-body-sm);
   color: var(--muted2);
   transition: color var(--transition-base);
 }
 
 .step.active {
-  color: var(--accent2);
-}
-
-.step.done {
   color: var(--accent);
 }
 
+.step.done {
+  color: var(--success);
+}
+
 .step.failed {
-  color: var(--accent3);
+  color: var(--danger);
 }
 
 .stepDot {
@@ -99,106 +100,113 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--surface2);
   border: 2px solid var(--border);
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: 500;
   flex-shrink: 0;
-  transition: all var(--transition-base);
+  transition:
+    border-color var(--transition-base),
+    background var(--transition-base);
 }
 
 .step.active .stepDot {
   border-color: var(--accent);
-  box-shadow: var(--glow-accent);
   animation: pulse 1.5s ease infinite;
 }
 
 .step.done .stepDot {
-  border-color: var(--accent);
-  background: var(--accent);
+  border-color: var(--success);
+  background: var(--success);
   color: var(--bg);
 }
 
 .step.failed .stepDot {
-  border-color: var(--accent3);
-  background: var(--accent3);
+  border-color: var(--danger);
+  background: var(--danger);
   color: var(--bg);
 }
 
 .stepError {
-  margin-left: 40px;
-  margin-top: 6px;
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 12px;
-  color: var(--accent3);
+  margin-left: var(--space-8);
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  color: var(--danger);
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.stepError p {
-  margin: 0;
+  gap: var(--space-3);
 }
 
 .retryBtn {
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 11px;
-  color: var(--accent3);
-  padding: 4px 12px;
-  border: 1px solid var(--accent3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  color: var(--danger);
+  padding: var(--space-1) var(--space-3);
+  min-height: 36px;
+  border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.retryBtn:hover {
-  background: var(--accent3);
-  color: var(--bg);
+@media (hover: hover) {
+  .retryBtn:hover {
+    background: var(--danger);
+    color: var(--bg);
+  }
 }
 
 .notice {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 11px;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
   color: var(--muted);
   background: var(--surface2);
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 16px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
   text-align: left;
 }
 
 .noticeIcon {
   flex-shrink: 0;
-  color: var(--accent2);
+  color: var(--muted);
 }
 
 .cancelBtn {
-  font-family: var(--font-dm-mono), monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
   color: var(--muted);
-  padding: 8px 20px;
+  padding: var(--space-2) var(--space-5);
+  min-height: 44px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
-.cancelBtn:hover {
-  border-color: var(--accent3);
-  color: var(--accent3);
+@media (hover: hover) {
+  .cancelBtn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
 }
 
 @media (max-width: 480px) {
   .card {
-    padding: 32px 24px;
+    padding: var(--space-6) var(--space-5);
   }
 
   .roomCode {
-    font-size: 28px;
-    gap: 8px;
+    font-size: var(--fs-display-md);
+    gap: var(--space-2);
   }
 }

@@ -1,25 +1,79 @@
 :root {
+  /* ---- surfaces (dark stage) ---- */
   --bg: #0a0a0a;
-  --surface: #111111;
-  --surface2: #1a1a1a;
-  --border: #333333;
+  --surface: #141414;
+  --surface2: #1e1e1e;
+  --border: #2e2e2e;
+  --line-strong: #3d3d3d;
+
+  /* ---- ink ---- */
+  --text: #f0f0f0;
+  --muted: #b0b0b0;
+  --muted2: #8a8a8a;
+
+  /* ---- one functional accent (also the brand mark) ---- */
   --accent: #c8f135;
-  --accent2: #5b8cff;
-  --accent3: #ff5c5c;
-  --text: #e8e8e8;
-  --muted: #a0a0a0;
-  --muted2: #858585;
-  --radius-sm: 6px;
-  --radius-md: 10px;
+  --brand: #c8f135;
+
+  /* ---- semantic states (always paired with icon + text) ---- */
+  --success: #43d675;
+  --warning: #ffb020;
+  --danger: #ff5c5c;
+
+  /* ---- fonts: display / text / data ---- */
+  --font-display: var(--font-syne), sans-serif;
+  --font-text: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-dm-mono), monospace;
+
+  /* ---- type scale (rem at 16px root, so browser zoom rescales) ---- */
+  --fs-display-xl: 3.5rem;
+  --fs-display-lg: 2.25rem;
+  --fs-display-md: 1.5rem;
+  --fs-title: 1.125rem;
+  --fs-body: 1rem;
+  --fs-body-sm: 0.875rem;
+  --fs-label: 0.75rem;
+  --fs-label-sm: 0.6875rem;
+  --lh-tight: 1.05;
+  --lh-snug: 1.2;
+  --lh-normal: 1.4;
+  /* tracking is size-specific: tighten large display type, body near 0, open tiny labels */
+  --tracking-display: -0.02em;
+  --tracking-tight: -0.01em;
+  --tracking-label: 0.08em;
+
+  /* ---- spacing scale (4px base) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+  --space-10: 64px;
+
+  /* ---- radius ---- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-lg: 16px;
-  --glow-accent: 0 0 20px rgba(200, 241, 53, 0.25);
-  --glow-accent2: 0 0 20px rgba(91, 140, 255, 0.25);
-  --glow-accent3: 0 0 20px rgba(255, 92, 92, 0.25);
-  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.4);
-  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --transition-fast: 150ms ease;
-  --transition-base: 250ms ease;
-  --transition-slow: 400ms ease;
+  --radius-full: 999px;
+
+  /* ---- elevation (restrained) ---- */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --glow-accent: 0 0 0 1px rgba(200, 241, 53, 0.35);
+  --scrim: rgba(10, 10, 10, 0.72);
+
+  /* ---- motion: two budgets ---- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --dur-feedback: 100ms; /* in-game press feedback */
+  --dur-fast: 150ms;
+  --dur-base: 240ms; /* menu / screen motion */
+  --dur-slow: 320ms;
+  --transition-fast: var(--dur-fast) var(--ease-standard);
+  --transition-base: var(--dur-base) var(--ease-standard);
+  --transition-slow: var(--dur-slow) var(--ease-standard);
 }
 
 *,
@@ -43,34 +97,9 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image:
-    radial-gradient(circle at 20% 30%, rgba(200, 241, 53, 0.04) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(91, 140, 255, 0.04) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
-  pointer-events: none;
-  z-index: 0;
+  font-family: var(--font-text);
+  font-size: var(--fs-body);
+  line-height: var(--lh-normal);
 }
 
 a {
@@ -94,23 +123,24 @@ select {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: var(--space-3) var(--space-4);
   outline: none;
   transition: border-color var(--transition-fast);
 }
 
 input:focus-visible,
 select:focus-visible {
-  border-color: var(--accent2);
+  border-color: var(--accent);
 }
 
-:where(a, button, input, select, [role="slider"]):focus-visible {
-  outline: 2px solid var(--accent2);
+/* text fields show focus via their border (below); everything else gets a ring */
+:where(a, button, [role="slider"]):focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
 ::selection {
-  background: rgba(200, 241, 53, 0.2);
+  background: rgba(200, 241, 53, 0.22);
   color: var(--text);
 }
 
@@ -124,7 +154,7 @@ select:focus-visible {
 
 ::-webkit-scrollbar-thumb {
   background: var(--muted2);
-  border-radius: 3px;
+  border-radius: var(--radius-full);
 }
 
 @keyframes fadeIn {
@@ -141,7 +171,7 @@ select:focus-visible {
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.98);
   }
   to {
     opacity: 1;
@@ -159,16 +189,6 @@ select:focus-visible {
   }
 }
 
-@keyframes glowPulse {
-  0%,
-  100% {
-    box-shadow: var(--glow-accent);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(200, 241, 53, 0.5);
-  }
-}
-
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -180,6 +200,7 @@ select:focus-visible {
   }
 }
 
+/* Reduced motion: strip all shake, pulse, parallax, and flashing. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -197,8 +218,9 @@ select:focus-visible {
 
 @media (prefers-contrast: more) {
   :root {
-    --border: #666666;
-    --muted: #d0d0d0;
-    --muted2: #b8b8b8;
+    --border: #6a6a6a;
+    --line-strong: #808080;
+    --muted: #d4d4d4;
+    --muted2: #bcbcbc;
   }
 }

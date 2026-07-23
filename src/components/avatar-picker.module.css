@@ -7,8 +7,8 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-  gap: 6px;
-  padding: 4px;
+  gap: var(--space-2);
+  padding: var(--space-1);
 }
 
 .avatar {
@@ -16,16 +16,14 @@
   align-items: center;
   justify-content: center;
   aspect-ratio: 1;
-  padding: 4px;
+  padding: var(--space-1);
   overflow: hidden;
   background: var(--surface2);
   border: 2px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+  border-radius: var(--radius-md);
   transition:
     border-color var(--transition-fast),
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast);
+    transform var(--dur-feedback) var(--ease-out);
 }
 
 .avatar img {
@@ -34,15 +32,19 @@
   object-fit: contain;
 }
 
-.avatar:hover {
-  border-color: var(--muted);
-  transform: scale(1.08);
+@media (hover: hover) {
+  .avatar:hover {
+    border-color: var(--muted2);
+  }
+}
+
+.avatar:active {
+  transform: scale(0.96);
 }
 
 .avatar.selected {
   border-color: var(--accent);
-  box-shadow: var(--glow-accent);
-  transform: scale(1.08);
+  transform: scale(1.06);
 }
 
 @media (max-width: 480px) {
