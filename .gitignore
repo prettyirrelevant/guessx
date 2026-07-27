@@ -10,6 +10,7 @@ node_modules/
 
 # generated output
 .next/
+.open-next/
 .turbo/
 .wrangler/
 dist/

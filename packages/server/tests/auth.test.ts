@@ -5,6 +5,10 @@ import { issueSession, issueSocketTicket, verifySession, verifySocketTicket } fr
 const SECRET = "test-auth-signing-secret-at-least-32-characters";
 
 describe("authentication tokens", () => {
+  it("rejects a missing signing secret", async () => {
+    await expect(issueSession("")).rejects.toThrow("AUTH_SIGNING_SECRET is not configured");
+  });
+
   it("verifies issued sessions and rejects modified tokens", async () => {
     const session = await issueSession(SECRET);
     expect(await verifySession(session.token, SECRET)).toMatch(

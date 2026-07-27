@@ -47,23 +47,33 @@ export async function searchArtistsFromDeezer(
     throw new Error("invalid Deezer response");
   }
 
-  return response.data
-    .filter(
-      (artist): artist is { id: number; name: string; picture_small: string } =>
-        isRecord(artist) &&
-        typeof artist.id === "number" &&
-        Number.isSafeInteger(artist.id) &&
-        typeof artist.name === "string" &&
-        artist.name.trim().length > 0 &&
-        typeof artist.picture_small === "string" &&
-        artist.picture_small.startsWith("https://"),
-    )
-    .slice(0, 8)
-    .map((artist) => ({
+  const artists: { id: number; name: string; picture_small: string }[] = [];
+  const artistIds = new Set<number>();
+
+  for (const artist of response.data) {
+    if (
+      !isRecord(artist) ||
+      typeof artist.id !== "number" ||
+      !Number.isSafeInteger(artist.id) ||
+      artistIds.has(artist.id) ||
+      typeof artist.name !== "string" ||
+      artist.name.trim().length === 0 ||
+      typeof artist.picture_small !== "string" ||
+      !artist.picture_small.startsWith("https://")
+    ) {
+      continue;
+    }
+
+    artistIds.add(artist.id);
+    artists.push({
       id: artist.id,
       name: artist.name.slice(0, 120),
       picture_small: artist.picture_small,
-    }));
+    });
+    if (artists.length === 8) break;
+  }
+
+  return artists;
 }
 
 export async function prepareMusicContent(

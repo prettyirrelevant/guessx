@@ -106,6 +106,7 @@ export function Lobby({ room }: { room: PublicRoom }) {
                   className={styles.playerAvatar}
                   width={28}
                   height={28}
+                  unoptimized
                 />
                 <span className={styles.playerName}>{player.displayName}</span>
                 {player.isHost && <Shield size={18} className={styles.hostIcon} />}

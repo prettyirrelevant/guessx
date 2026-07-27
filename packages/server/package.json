@@ -2,11 +2,13 @@
   "name": "@guessx/server",
   "version": "0.1.0",
   "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "fmt": "oxfmt --write src tests vitest.config.mts tsconfig.json package.json wrangler.jsonc",
-    "fmt:check": "oxfmt --check src tests vitest.config.mts tsconfig.json package.json wrangler.jsonc",
+    "fmt": "oxfmt --write src tests vitest.config.mts tsconfig.json package.json wrangler.test.jsonc",
+    "fmt:check": "oxfmt --check src tests vitest.config.mts tsconfig.json package.json wrangler.test.jsonc",
     "lint": "oxlint src tests vitest.config.mts",
     "test": "vitest run --config vitest.config.mts",
     "typecheck": "tsc --noEmit"

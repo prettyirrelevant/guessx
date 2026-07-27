@@ -35,19 +35,6 @@ type PendingCommand = {
 
 const RoomConnectionContext = createContext<ConnectionValue | null>(null);
 
-function socketOptions(roomCode: string) {
-  const configuredUrl = process.env.NEXT_PUBLIC_GAME_SERVER_URL;
-  if (!configuredUrl) throw new Error("NEXT_PUBLIC_GAME_SERVER_URL is not configured");
-  const url = new URL(configuredUrl);
-
-  return {
-    host: url.host,
-    protocol: url.protocol === "https:" ? ("wss" as const) : ("ws" as const),
-    party: "guess-room",
-    room: roomCode,
-  };
-}
-
 /** Owns the room socket and exposes request-correlated commands plus the latest player snapshot. */
 export function RoomConnectionProvider({
   roomCode,
@@ -71,7 +58,10 @@ export function RoomConnectionProvider({
     let socket: PartySocket;
     try {
       socket = new PartySocket({
-        ...socketOptions(roomCode),
+        host: window.location.host,
+        protocol: window.location.protocol === "https:" ? "wss" : "ws",
+        party: "guess-room",
+        room: roomCode,
         query: async () => {
           try {
             const ticket = await getRoomSocketTicket({ roomCode, displayName, avatar });
@@ -85,7 +75,7 @@ export function RoomConnectionProvider({
       });
     } catch (cause) {
       setStatus("error");
-      setError(cause instanceof Error ? cause.message : "could not configure game server");
+      setError(cause instanceof Error ? cause.message : "could not connect to the room");
       return;
     }
 
@@ -99,7 +89,7 @@ export function RoomConnectionProvider({
         message = JSON.parse(String(event.data)) as ServerMessage;
       } catch {
         setStatus("error");
-        setError("game server sent an invalid response");
+        setError("the room returned an invalid response");
         return;
       }
 

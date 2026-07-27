@@ -17,6 +17,16 @@ describe("worker boundaries", () => {
     expect(response.status).toBe(401);
   });
 
+  it("serves authenticated artist searches", async () => {
+    const token = await createSession();
+    const response = await SELF.fetch("https://worker.test/api/artists?query=a", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ artists: [] });
+  });
+
   it("rejects missing provider settings before creating a room", async () => {
     const token = await createSession();
     const response = await SELF.fetch("https://worker.test/api/rooms", {
@@ -74,7 +84,7 @@ describe("worker boundaries", () => {
       `https://worker.test/parties/guess-room/${roomCode}?ticket=${encodeURIComponent(ticket)}`,
       {
         headers: {
-          Origin: "https://guessx.test",
+          Origin: "https://worker.test",
           Upgrade: "websocket",
         },
       },

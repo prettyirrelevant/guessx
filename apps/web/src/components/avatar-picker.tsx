@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Check } from "lucide-react";
 
 import { AVATAR_SEEDS, getAvatarUrl } from "@/lib/session";
 
@@ -25,7 +26,19 @@ export function AvatarPicker({
             aria-label={`select ${seed} avatar`}
             aria-pressed={seed === selected}
           >
-            <Image src={getAvatarUrl(seed)} alt={seed} width={32} height={32} />
+            <Image
+              src={getAvatarUrl(seed)}
+              alt=""
+              width={32}
+              height={32}
+              sizes="32px"
+              unoptimized
+            />
+            {seed === selected && (
+              <span className={styles.checkmark} aria-hidden>
+                <Check size={11} strokeWidth={3} />
+              </span>
+            )}
           </button>
         ))}
       </div>

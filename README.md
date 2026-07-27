@@ -32,31 +32,32 @@ no accounts needed, just a display name and an avatar.
 - cloudflare workers, durable objects, hono, and partyserver
 - turborepo with pnpm workspaces
 - [oxlint](https://oxc.rs) + [oxfmt](https://oxc.rs) for linting and formatting
-- next.js deployed on vercel
+- one OpenNext Cloudflare Worker deployment
 
 ## development
 
 ```sh
 pnpm install
-cp apps/server/.dev.vars.example apps/server/.dev.vars
-cp apps/web/.env.example apps/web/.env.local
+cp apps/web/.dev.vars.example apps/web/.dev.vars
 pnpm dev
 ```
 
-Generate the local signing secret with `openssl rand -hex 32`. Store the production value with:
+Use `pnpm --filter @guessx/web preview` to test the complete Worker locally.
+
+Generate the signing secret with `openssl rand -hex 32`. Store production secrets with:
 
 ```sh
-cd apps/server
+cd apps/web
 pnpm wrangler secret put AUTH_SIGNING_SECRET
 pnpm wrangler secret put TMDB_API_READ_ACCESS_TOKEN
 ```
 
-Keep `AUTH_SIGNING_SECRET` and `TMDB_API_READ_ACCESS_TOKEN` in Cloudflare only.
+Deploy the site, API, WebSocket server, and Durable Object together with `pnpm deploy`.
 
 ## workspace
 
-- `apps/web` — Next.js app
-- `apps/server` — Cloudflare server
+- `apps/web` — Next.js app and Cloudflare Worker entry
+- `packages/server` — Hono, PartyServer, and Durable Object
 - `packages/content` — round generation
 - `packages/game` — shared game code
 

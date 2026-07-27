@@ -1,10 +1,10 @@
 "use server";
 
-import { searchArtistsFromDeezer } from "@guessx/content";
-
-import { limitPublicSearch } from "./rate-limit";
+import { apiRequest } from "./api";
 
 export async function searchArtists(query: string) {
-  await limitPublicSearch();
-  return searchArtistsFromDeezer(query);
+  const response = await apiRequest((client) => client.artists.$get({ query: { query } }));
+  if (!response.ok) throw new Error("could not search artists");
+  const result = await response.json();
+  return result.artists;
 }

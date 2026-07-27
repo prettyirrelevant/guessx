@@ -1,6 +1,5 @@
 import localFont from "next/font/local";
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/react";
 
 import { Footer } from "@/components/footer";
 
@@ -21,11 +20,7 @@ const dmMono = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "http://localhost:3000",
-  ),
+  metadataBase: new URL("https://guessx.enio.la"),
   icons: {
     icon: "/logo.svg",
   },
@@ -67,7 +62,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <Footer />
-        <Analytics />
       </body>
     </html>
   );

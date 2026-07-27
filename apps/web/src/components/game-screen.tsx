@@ -179,8 +179,10 @@ function ActiveRound({
               src={round.mediaUrl}
               alt="guess this actor"
               className={styles.actorImg}
-              width={400}
-              height={500}
+              width={421}
+              height={632}
+              priority
+              sizes="200px"
             />
           </div>
         ) : room.mode === "flag" ? (
@@ -191,6 +193,8 @@ function ActiveRound({
               className={styles.flagImg}
               width={480}
               height={320}
+              priority
+              sizes="(max-width: 540px) calc(100vw - 82px), 410px"
             />
           </div>
         ) : (
@@ -201,6 +205,7 @@ function ActiveRound({
               className={styles.logoImg}
               width={240}
               height={240}
+              priority
               unoptimized
             />
           </div>
@@ -220,6 +225,7 @@ function ActiveRound({
               }`}
               width={26}
               height={26}
+              unoptimized
             />
           ))}
           {players.length > 8 && (

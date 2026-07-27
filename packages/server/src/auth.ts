@@ -1,6 +1,6 @@
 import { isRoomCode } from "@guessx/game";
 
-const TOKEN_ISSUER = "guessx-server";
+const TOKEN_ISSUER = "guessx";
 const SESSION_AUDIENCE = "guessx-api";
 const SOCKET_AUDIENCE = "guessx-room-socket";
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -34,7 +34,7 @@ function encodeBase64Url(value: Uint8Array): string {
     .replace(/=+$/, "");
 }
 
-function decodeBase64Url(value: string): Uint8Array | null {
+function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> | null {
   if (!/^[A-Za-z0-9_-]+$/.test(value)) return null;
 
   const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
@@ -60,6 +60,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 async function importSigningKey(secret: string): Promise<CryptoKey> {
+  if (!secret) throw new Error("AUTH_SIGNING_SECRET is not configured");
   if (secret.length < 32) throw new Error("AUTH_SIGNING_SECRET must be at least 32 characters");
   return crypto.subtle.importKey(
     "raw",

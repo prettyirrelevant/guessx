@@ -162,10 +162,29 @@ function CreateRoomModal({
   const roundIndex = ROUND_OPTIONS.findIndex((n) => n === totalRounds);
   const timeIndex = TIME_OPTIONS.findIndex((t) => t.value === roundDuration);
 
-  // grid shows search results while searching, otherwise the popular set
-  const gridArtists = artistQuery.trim()
-    ? artistResults.map((a) => ({ id: a.id, name: a.name, picture: a.picture_small }))
-    : POPULAR_ARTISTS.map((a) => ({ id: a.id, name: a.name, picture: deezerImg(a.id) }));
+  const normalizedArtistQuery = artistQuery.trim().toLowerCase();
+  const searchResults = artistResults.map((artist) => ({
+    id: artist.id,
+    name: artist.name,
+    picture: artist.picture_small,
+  }));
+  const curatedMatch = POPULAR_ARTISTS.find(
+    (artist) => artist.name.toLowerCase() === normalizedArtistQuery,
+  );
+  const gridArtists = normalizedArtistQuery
+    ? curatedMatch
+      ? [
+          { ...curatedMatch, picture: deezerImg(curatedMatch.id) },
+          ...searchResults.filter(
+            (artist) =>
+              artist.id !== curatedMatch.id && artist.name.toLowerCase() !== normalizedArtistQuery,
+          ),
+        ]
+      : searchResults
+    : POPULAR_ARTISTS.map((artist) => ({
+        ...artist,
+        picture: deezerImg(artist.id),
+      }));
 
   const toggleArtist = (artist: { id: number; name: string }) => {
     if (selectedIds.has(artist.id)) {
@@ -176,15 +195,18 @@ function CreateRoomModal({
   };
 
   useEffect(() => {
-    if (!debouncedQuery.trim()) {
+    const query = artistQuery.trim();
+    if (query.length < 2) {
       setArtistResults([]);
+      setSearching(false);
       return;
     }
+    if (query !== debouncedQuery.trim()) return;
 
     let cancelled = false;
     setSearching(true);
 
-    searchArtists(debouncedQuery)
+    searchArtists(query)
       .then((results) => {
         if (!cancelled) setArtistResults(results);
       })
@@ -198,7 +220,7 @@ function CreateRoomModal({
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery]);
+  }, [artistQuery, debouncedQuery]);
 
   const handleSubmit = async () => {
     if (mode === "music" && selectedArtists.length === 0) {
@@ -294,7 +316,7 @@ function CreateRoomModal({
                     <div key={a.id} className={styles.artistChip}>
                       <Image
                         src={deezerImg(a.id)}
-                        alt={a.name}
+                        alt=""
                         className={styles.artistChipImg}
                         width={22}
                         height={22}
@@ -321,7 +343,12 @@ function CreateRoomModal({
                     aria-label="search artists"
                     placeholder="search for an artist..."
                     value={artistQuery}
-                    onChange={(e) => setArtistQuery(e.target.value)}
+                    onChange={(event) => {
+                      const query = event.target.value;
+                      setArtistQuery(query);
+                      setArtistResults([]);
+                      setSearching(query.trim().length >= 2);
+                    }}
                   />
                   {artistQuery && (
                     <button
@@ -329,6 +356,7 @@ function CreateRoomModal({
                       onClick={() => {
                         setArtistQuery("");
                         setArtistResults([]);
+                        setSearching(false);
                       }}
                       type="button"
                       aria-label="clear search"
@@ -344,7 +372,7 @@ function CreateRoomModal({
                   </div>
                 )}
 
-                {!searching && artistQuery.trim() && artistResults.length === 0 && (
+                {!searching && artistQuery.trim().length >= 2 && artistResults.length === 0 && (
                   <div className={styles.searchStatus} role="status">
                     no artists found
                   </div>
@@ -365,7 +393,7 @@ function CreateRoomModal({
                         >
                           <Image
                             src={a.picture}
-                            alt={a.name}
+                            alt=""
                             className={styles.artistImg}
                             width={44}
                             height={44}

@@ -55,6 +55,7 @@ export function ResultsScreen({ room }: { room: PublicRoom }) {
                 className={styles.podiumAvatar}
                 width={i === 0 ? 64 : 48}
                 height={i === 0 ? 64 : 48}
+                unoptimized
               />
               <div className={styles.podiumName}>{player.displayName}</div>
               <div className={styles.podiumScore}>{player.totalScore}</div>
@@ -77,6 +78,7 @@ export function ResultsScreen({ room }: { room: PublicRoom }) {
                   className={styles.listAvatar}
                   width={28}
                   height={28}
+                  unoptimized
                 />
                 <span className={styles.listName}>{player.displayName}</span>
                 <span className={styles.listScore}>{player.totalScore}</span>

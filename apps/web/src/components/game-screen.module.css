@@ -118,14 +118,19 @@
 
 .actorCard {
   display: flex;
+  align-items: center;
   justify-content: center;
+  width: min(100%, 200px);
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: var(--surface2);
+  border-radius: var(--radius-md);
 }
 
 .actorImg {
   width: 100%;
-  max-height: 300px;
+  height: 100%;
   object-fit: contain;
-  border-radius: var(--radius-md);
 }
 
 .flagCard {
@@ -133,6 +138,7 @@
   align-items: center;
   justify-content: center;
   width: min(100%, 460px);
+  aspect-ratio: 3 / 2;
   padding: var(--space-5);
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -142,9 +148,7 @@
 
 .flagImg {
   width: 100%;
-  max-width: 420px;
-  height: auto;
-  max-height: 260px;
+  height: 100%;
   object-fit: contain;
   border-radius: var(--radius-sm);
 }

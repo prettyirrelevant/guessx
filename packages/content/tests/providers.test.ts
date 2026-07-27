@@ -127,6 +127,23 @@ describe("music content", () => {
     await expect(searchArtistsFromDeezer(" a ")).resolves.toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("deduplicates artist search results by ID", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse({
+        data: [
+          { id: 1, name: "Drake", picture_small: "https://example.com/drake.jpg" },
+          { id: 1, name: "Drake", picture_small: "https://example.com/drake-copy.jpg" },
+          { id: 2, name: "Drake Bell", picture_small: "https://example.com/drake-bell.jpg" },
+        ],
+      }),
+    );
+
+    await expect(searchArtistsFromDeezer("Drake")).resolves.toEqual([
+      { id: 1, name: "Drake", picture_small: "https://example.com/drake.jpg" },
+      { id: 2, name: "Drake Bell", picture_small: "https://example.com/drake-bell.jpg" },
+    ]);
+  });
 });
 
 describe("content config", () => {

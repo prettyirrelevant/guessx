@@ -139,6 +139,7 @@ export function RevealScreen({
                   className={styles.resultAvatar}
                   width={36}
                   height={36}
+                  unoptimized
                 />
                 <div className={styles.resultInfo}>
                   <span className={styles.resultName}>
@@ -199,6 +200,7 @@ export function RevealScreen({
               className={styles.standingAvatar}
               width={24}
               height={24}
+              unoptimized
             />
             <span className={styles.standingName}>{player.displayName}</span>
             {player.streak >= 3 && (
