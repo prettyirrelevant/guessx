@@ -1,0 +1,22 @@
+{
+  "name": "@guessx/game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "fmt": "oxfmt --write src tests tsconfig.json package.json",
+    "fmt:check": "oxfmt --check src tests tsconfig.json package.json",
+    "lint": "oxlint src tests",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
+    "typescript": "^5",
+    "vitest": "^4.1.1"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "guessx-server",
+  "main": "src/app.ts",
+  "compatibility_date": "2026-07-26",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GUESS_ROOM",
+        "class_name": "GuessRoom",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["GuessRoom"],
+    },
+  ],
+  "vars": {
+    "APP_ORIGIN": "http://localhost:3000",
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  "limits": {
+    "cpu_ms": 30000,
+  },
+}

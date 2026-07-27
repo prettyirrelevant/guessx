@@ -23,5 +23,5 @@
       "version": "19.0"
     }
   },
-  "ignorePatterns": ["convex/**", ".next/**", "node_modules/**"]
+  "ignorePatterns": ["**/.next/**", "**/.turbo/**", "**/node_modules/**"]
 }

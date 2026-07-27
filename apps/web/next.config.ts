@@ -1,0 +1,21 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  transpilePackages: ["@guessx/content", "@guessx/game"],
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
+  images: {
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns: [
+      { protocol: "https", hostname: "api.dicebear.com" },
+      { protocol: "https", hostname: "api.deezer.com" },
+      { protocol: "https", hostname: "cdn-images.dzcdn.net" },
+      { protocol: "https", hostname: "image.tmdb.org" },
+      { protocol: "https", hostname: "flagcdn.com" },
+    ],
+  },
+};
+
+export default nextConfig;

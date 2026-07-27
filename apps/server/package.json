@@ -1,0 +1,29 @@
+{
+  "name": "@guessx/server",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "fmt": "oxfmt --write src tests vitest.config.mts tsconfig.json package.json wrangler.jsonc",
+    "fmt:check": "oxfmt --check src tests vitest.config.mts tsconfig.json package.json wrangler.jsonc",
+    "lint": "oxlint src tests vitest.config.mts",
+    "test": "vitest run --config vitest.config.mts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@guessx/content": "workspace:*",
+    "@guessx/game": "workspace:*",
+    "hono": "^4.12.32",
+    "partyserver": "^0.5.8"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.18.8",
+    "@cloudflare/workers-types": "^5.20260726.1",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
+    "typescript": "^5",
+    "vitest": "^4.1.1",
+    "wrangler": "^4.114.0"
+  }
+}

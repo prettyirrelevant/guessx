@@ -3,7 +3,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/prettyirrelevant/guessx/ci.yml?style=for-the-badge&label=ci)](https://github.com/prettyirrelevant/guessx/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/prettyirrelevant/guessx?style=for-the-badge)](LICENSE)
 [![next.js](https://img.shields.io/badge/next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
-[![convex](https://img.shields.io/badge/convex-realtime-f3694c?style=for-the-badge)](https://convex.dev)
+[![cloudflare](https://img.shields.io/badge/cloudflare-durable_objects-f38020?style=for-the-badge&logo=cloudflare)](https://developers.cloudflare.com/durable-objects/)
 
 real-time multiplayer guessing game. challenge your friends to guess songs, logos, actors, and flags. fastest finger wins.
 
@@ -29,22 +29,36 @@ no accounts needed, just a display name and an avatar.
 ## stack
 
 - [next.js 15](https://nextjs.org) + react 19
-- [convex](https://convex.dev) for real-time backend, database, and scheduling
+- cloudflare workers, durable objects, hono, and partyserver
+- turborepo with pnpm workspaces
 - [oxlint](https://oxc.rs) + [oxfmt](https://oxc.rs) for linting and formatting
-- deployed on [vercel](https://vercel.com)
+- next.js deployed on vercel
 
 ## development
 
-```
+```sh
 pnpm install
-pnpx convex dev   # start convex backend
-pnpm dev           # start next.js dev server
+cp apps/server/.dev.vars.example apps/server/.dev.vars
+cp apps/web/.env.example apps/web/.env.local
+pnpm dev
 ```
 
-Provider configuration:
+Generate the local signing secret with `openssl rand -hex 32`. Store the production value with:
 
-- `TMDB_API_READ_ACCESS_TOKEN` is required for actor mode.
-- `PREPARATION_SECRET` must contain the same private random value in the Next.js and Convex environments. It authenticates the server-side content preparation bridge. Generate one with `openssl rand -hex 32`, add it to `.env.local`, and run `pnpx convex env set PREPARATION_SECRET <value>`.
+```sh
+cd apps/server
+pnpm wrangler secret put AUTH_SIGNING_SECRET
+pnpm wrangler secret put TMDB_API_READ_ACCESS_TOKEN
+```
+
+Keep `AUTH_SIGNING_SECRET` and `TMDB_API_READ_ACCESS_TOKEN` in Cloudflare only.
+
+## workspace
+
+- `apps/web` — Next.js app
+- `apps/server` — Cloudflare server
+- `packages/content` — round generation
+- `packages/game` — shared game code
 
 See the in-app `/credits` page for provider attribution and licensing details.
 
