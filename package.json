@@ -3,35 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "oxlint .",
-    "fmt": "oxfmt --write .",
-    "fmt:check": "oxfmt --check .",
-    "test": "vitest run --config convex/vitest.config.mts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@mantine/hooks": "^8.3.18",
-    "@vercel/analytics": "^2.0.1",
-    "convex": "^1.42.3",
-    "lucide-react": "^0.577.0",
-    "next": "^15",
-    "react": "^19",
-    "react-dom": "^19",
-    "simple-icons": "^16.27.0"
+    "build": "turbo build",
+    "deploy": "pnpm --filter @guessx/web deploy",
+    "dev": "turbo dev",
+    "fmt": "turbo fmt",
+    "fmt:check": "turbo fmt:check",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck"
   },
   "devDependencies": {
-    "@edge-runtime/vm": "^5.0.0",
-    "@types/node": "^22",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "convex-test": "^0.0.54",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
+    "turbo": "^2.5.0",
     "typescript": "^5",
-    "vite": "^8.1.5",
     "vitest": "^4.1.1"
   },
   "engines": {

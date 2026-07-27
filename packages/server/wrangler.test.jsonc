@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "guessx-server-test",
+  "main": "src/app.ts",
+  "compatibility_date": "2026-07-26",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GUESS_ROOM",
+        "class_name": "GuessRoom",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["GuessRoom"],
+    },
+  ],
+}

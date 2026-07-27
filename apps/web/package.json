@@ -1,0 +1,38 @@
+{
+  "name": "@guessx/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "build:worker": "opennextjs-cloudflare build",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "dev": "next dev",
+    "fmt": "oxfmt --write src worker.ts open-next.config.ts cloudflare-env.d.ts next.config.ts tsconfig.json package.json wrangler.jsonc",
+    "fmt:check": "oxfmt --check src worker.ts open-next.config.ts cloudflare-env.d.ts next.config.ts tsconfig.json package.json wrangler.jsonc",
+    "lint": "oxlint src worker.ts open-next.config.ts next.config.ts",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@guessx/content": "workspace:*",
+    "@guessx/game": "workspace:*",
+    "@guessx/server": "workspace:*",
+    "@mantine/hooks": "^8.3.18",
+    "lucide-react": "^0.577.0",
+    "next": "^15.5.21",
+    "partysocket": "^1.3.0",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260727.1",
+    "@opennextjs/cloudflare": "^1.20.2",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
+    "typescript": "^5",
+    "wrangler": "^4.114.0"
+  }
+}

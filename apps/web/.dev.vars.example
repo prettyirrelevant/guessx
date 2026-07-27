@@ -1,0 +1,3 @@
+NEXTJS_ENV=development
+AUTH_SIGNING_SECRET=generate-with-openssl-rand-hex-32
+TMDB_API_READ_ACCESS_TOKEN=

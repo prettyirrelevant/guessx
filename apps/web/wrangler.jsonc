@@ -1,0 +1,45 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "guessx",
+  "main": "worker.ts",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "guessx.enio.la",
+      "custom_domain": true,
+    },
+  ],
+  "compatibility_date": "2026-07-27",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "guessx",
+    },
+  ],
+  "images": {
+    "binding": "IMAGES",
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GUESS_ROOM",
+        "class_name": "GuessRoom",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["GuessRoom"],
+    },
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+}

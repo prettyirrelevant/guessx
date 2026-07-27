@@ -5,11 +5,10 @@
   "trailingComma": "all",
   "tabWidth": 2,
   "arrowParens": "always",
-  "ignorePatterns": ["convex/_generated/**"],
+  "ignorePatterns": ["**/.next/**", "**/.turbo/**", "**/node_modules/**"],
   "sortImports": {
-    "groups": ["builtin", "external", "convex", "app", ["parent", "sibling", "index"], "style"],
+    "groups": ["builtin", "external", "app", ["parent", "sibling", "index"], "style"],
     "customGroups": [
-      { "groupName": "convex", "elementNamePattern": ["@convex/**"] },
       { "groupName": "app", "elementNamePattern": ["@/**"] }
     ],
     "internalPattern": [],
