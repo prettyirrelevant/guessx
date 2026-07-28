@@ -3,9 +3,18 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
-  max-width: 360px;
+  max-width: 420px;
   width: 100%;
   box-shadow: var(--shadow-card);
+}
+
+.embedded {
+  max-width: none;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .label {

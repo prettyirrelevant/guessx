@@ -154,6 +154,6 @@ export const AVATAR_SEEDS = [
   "amber",
 ] as const;
 
-export function getAvatarUrl(seed: string, format: "png" | "svg" = "png"): string {
+export function getAvatarUrl(seed: string, format: "png" | "svg" = "svg"): string {
   return `https://api.dicebear.com/9.x/adventurer/${format}?seed=${encodeURIComponent(seed)}`;
 }

@@ -15,18 +15,19 @@ import {
   Minus,
   Plus,
   Info,
+  Pencil,
 } from "lucide-react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { ACTOR_CATEGORIES, CONTINENTS, POPULAR_ARTISTS } from "@guessx/game";
 
-import { useSession } from "@/lib/session";
+import { getAvatarUrl, useSession } from "@/lib/session";
 import { createRoom, joinRoom, searchArtists } from "@/lib/actions";
 import { ProfileSetup } from "@/components/profile-setup";
 import { ModalDialog } from "@/components/modal-dialog";
 
 import styles from "./page.module.css";
 
-type Modal = "create" | "join" | null;
+type Modal = "create" | "join" | "profile" | null;
 
 const ROOM_CODE_RE = /\/room\/([A-Z]{2}-\d{4})/i;
 
@@ -76,16 +77,41 @@ export default function Home() {
           guess songs, logos, actors, or flags. fastest finger wins.
         </p>
 
-        {hasProfile && (
-          <div className={styles.actions}>
-            <button className={styles.btnPrimary} onClick={() => setModal("create")}>
-              create room
+        {hasProfile ? (
+          <div className={styles.signedIn}>
+            <button
+              type="button"
+              className={styles.identity}
+              onClick={() => setModal("profile")}
+              aria-label={`playing as ${displayName}; edit profile`}
+            >
+              <Image
+                src={getAvatarUrl(avatar)}
+                alt=""
+                className={styles.identityAvatar}
+                width={38}
+                height={38}
+                unoptimized
+              />
+              <span className={styles.identityCopy}>
+                <span className={styles.identityLabel}>playing as</span>
+                <span className={styles.identityName}>{displayName}</span>
+              </span>
+              <span className={styles.identityEdit}>
+                <Pencil size={14} />
+              </span>
             </button>
-            <button className={styles.btnSecondary} onClick={() => setModal("join")}>
-              join room
-            </button>
+
+            <div className={styles.actions}>
+              <button className={styles.btnPrimary} onClick={() => setModal("create")}>
+                create room
+              </button>
+              <button className={styles.btnSecondary} onClick={() => setModal("join")}>
+                join room
+              </button>
+            </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {!hasProfile && (
@@ -100,6 +126,23 @@ export default function Home() {
             onAvatarChange={setAvatar}
           />
         </div>
+      )}
+
+      {modal === "profile" && (
+        <ModalDialog title="edit profile" onClose={() => setModal(null)}>
+          <ProfileSetup
+            displayName={displayName}
+            avatar={avatar}
+            embedded
+            showHeading={false}
+            submitLabel="save changes"
+            onSave={(name, av) => {
+              setDisplayName(name);
+              setAvatar(av);
+              setModal(null);
+            }}
+          />
+        </ModalDialog>
       )}
 
       {modal === "create" && (

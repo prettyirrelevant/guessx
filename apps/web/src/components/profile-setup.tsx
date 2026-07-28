@@ -12,12 +12,16 @@ export function ProfileSetup({
   onSave,
   onAvatarChange,
   submitLabel = "save profile",
+  embedded = false,
+  showHeading = true,
 }: {
   displayName: string;
   avatar: string;
   onSave: (name: string, avatar: string) => void;
-  onAvatarChange: (seed: string) => void;
+  onAvatarChange?: (seed: string) => void;
   submitLabel?: string;
+  embedded?: boolean;
+  showHeading?: boolean;
 }) {
   const [name, setName] = useState(displayName);
   const [selectedAvatar, setSelectedAvatar] = useState(avatar);
@@ -28,7 +32,7 @@ export function ProfileSetup({
 
   const handleAvatarChange = (seed: string) => {
     setSelectedAvatar(seed);
-    onAvatarChange(seed);
+    onAvatarChange?.(seed);
   };
 
   const handleSave = () => {
@@ -36,8 +40,8 @@ export function ProfileSetup({
   };
 
   return (
-    <div className={styles.card}>
-      <div className={styles.label}>set up your profile</div>
+    <div className={`${styles.card} ${embedded ? styles.embedded : ""}`}>
+      {showHeading ? <div className={styles.label}>set up your profile</div> : null}
       <input
         aria-label="display name"
         className={styles.nameInput}

@@ -46,6 +46,94 @@
   flex-wrap: wrap;
 }
 
+.signedIn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.signedIn .actions {
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.signedIn .btnPrimary,
+.signedIn .btnSecondary {
+  min-width: 0;
+  flex: 1 1 0;
+  padding-inline: var(--space-4);
+  white-space: nowrap;
+}
+
+.identity {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--space-3);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.identityAvatar {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  background: var(--surface2);
+  border-radius: var(--radius-full);
+}
+
+.identityCopy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.identityLabel {
+  color: var(--muted2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label-sm);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.identityName {
+  overflow: hidden;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--fs-body);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identityEdit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+}
+
+@media (hover: hover) {
+  .identity:hover {
+    background: var(--surface2);
+    border-color: var(--muted2);
+  }
+}
+
 .btnPrimary,
 .btnSecondary {
   font-family: var(--font-display);
@@ -89,6 +177,8 @@
 }
 
 .profilePrompt {
+  width: 100%;
+  max-width: 420px;
   margin-top: var(--space-8);
   animation: fadeIn var(--dur-slow) var(--ease-out) both;
 }

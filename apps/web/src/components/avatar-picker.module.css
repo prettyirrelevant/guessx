@@ -1,12 +1,12 @@
 .container {
-  height: 240px;
+  height: clamp(240px, 42dvh, 360px);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
   gap: var(--space-2);
   padding: var(--space-1);
 }
@@ -64,10 +64,10 @@
 
 @media (max-width: 480px) {
   .container {
-    height: 200px;
+    height: min(300px, 40dvh);
   }
 
   .grid {
-    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
   }
 }

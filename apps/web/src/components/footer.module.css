@@ -3,6 +3,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
+  margin-top: auto;
   padding: var(--space-3) var(--space-5);
   font-family: var(--font-mono);
   font-size: var(--fs-label);
