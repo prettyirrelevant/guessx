@@ -20,7 +20,8 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": true
+      "predictiveBackGestureEnabled": true,
+      "permissions": ["android.permission.MODIFY_AUDIO_SETTINGS"]
     },
     "plugins": [
       "expo-router",
@@ -38,7 +39,12 @@
           "fonts": ["./assets/fonts/Syne-ExtraBold.ttf", "./assets/fonts/DMMono-Medium.ttf"]
         }
       ],
-      ["expo-secure-store", { "faceIDPermission": false }],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       [
         "expo-audio",
         {
@@ -51,6 +57,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5d530d98-eb7c-45d3-aa52-c3ba09151976"
+      }
+    },
+    "owner": "prettyirrelevant"
   }
 }
