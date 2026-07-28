@@ -33,8 +33,7 @@ export function PreparingScreen({ room }: { room: PublicRoom }) {
 
       setCurrentStep(1);
 
-      const result = await prepareGame(room._id);
-      if ("error" in result) throw new Error(result.error);
+      await prepareGame(room._id);
 
       setCurrentStep(2);
       await new Promise((r) => setTimeout(r, 500));

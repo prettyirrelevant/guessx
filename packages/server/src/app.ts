@@ -3,10 +3,10 @@ import { validator } from "hono/validator";
 import { bodyLimit } from "hono/body-limit";
 import { Hono, type Context, type Next } from "hono";
 import { isRoomCode, isValidCreateRoomInput, isValidJoinRoomInput } from "@guessx/game";
-import { isValidContentConfig, prepareContent, searchArtistsFromDeezer } from "@guessx/content";
 
 import { AUTHENTICATED_USER_HEADER, generateRoomCode, GuessRoom } from "./room";
 import type { Env } from "./env";
+import { isValidContentConfig, prepareContent, searchArtistsFromDeezer } from "./content";
 import { issueSession, issueSocketTicket, verifySession, verifySocketTicket } from "./auth";
 
 type HonoEnv = {
@@ -74,7 +74,11 @@ app.get("/health", (context) => context.json({ ok: true }));
 
 const api = new Hono<HonoEnv>()
   .post("/sessions", async (context) => {
-    const session = await issueSession(context.env.AUTH_SIGNING_SECRET);
+    const currentUserId = await verifySession(
+      bearerToken(context.req.raw),
+      context.env.AUTH_SIGNING_SECRET,
+    );
+    const session = await issueSession(context.env.AUTH_SIGNING_SECRET, currentUserId ?? undefined);
     return context.json(session, 201);
   })
   .use("/rooms", requireSession)

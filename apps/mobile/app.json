@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "guessX",
+    "slug": "guessx",
+    "version": "0.1.0",
+    "platforms": ["ios", "android"],
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "guessx",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0a0a",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.adewumi.guessx"
+    },
+    "android": {
+      "package": "com.adewumi.guessx",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0a0a",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": true
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0a0a0a",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 96
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": ["./assets/fonts/Syne-ExtraBold.ttf", "./assets/fonts/DMMono-Medium.ttf"]
+        }
+      ],
+      ["expo-secure-store", { "faceIDPermission": false }],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

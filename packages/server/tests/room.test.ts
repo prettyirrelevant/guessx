@@ -194,6 +194,7 @@ describe("GuessRoom", () => {
       (snapshot) => snapshot.round?.state === "revealing",
     );
     expect(revealed.round?.state).toBe("revealing");
+    expect(revealed.round).toHaveProperty("revealEndsAt");
     expect(revealed.round).toHaveProperty("correctAnswer", "Correct");
     expect(revealed.leaderboard.map((player) => player.totalScore)).toEqual([16, -2]);
 

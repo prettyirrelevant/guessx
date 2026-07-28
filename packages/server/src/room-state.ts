@@ -241,6 +241,7 @@ function toPublicRound(game: StoredGame): PublicRound | null {
   return {
     ...publicFields,
     state: round.state,
+    revealEndsAt: round.state === "revealing" ? game.phaseDeadline : undefined,
     correctAnswer: round.correctAnswer,
     mediaTitle: round.mediaTitle,
     mediaArtist: round.mediaArtist,

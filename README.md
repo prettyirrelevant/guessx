@@ -57,9 +57,9 @@ Deploy the site, API, WebSocket server, and Durable Object together with `pnpm d
 ## workspace
 
 - `apps/web` — Next.js app and Cloudflare Worker entry
-- `packages/server` — Hono, PartyServer, and Durable Object
-- `packages/content` — round generation
-- `packages/game` — shared game code
+- `apps/mobile` — Expo app
+- `packages/server` — HTTP and WebSocket clients, Hono, content generation, PartyServer, and Durable Object
+- `packages/game` — shared game protocol, models, validation, and catalogs
 
 See the in-app `/credits` page for provider attribution and licensing details.
 

@@ -14,13 +14,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@guessx/content": "workspace:*",
     "@guessx/game": "workspace:*",
     "@guessx/server": "workspace:*",
     "@mantine/hooks": "^8.3.18",
     "lucide-react": "^0.577.0",
     "next": "^15.5.21",
-    "partysocket": "^1.3.0",
     "react": "^19",
     "react-dom": "^19"
   },

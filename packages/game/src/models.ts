@@ -78,6 +78,7 @@ export type ActiveRound = PublicRoundBase & {
 
 export type RevealedRound = PublicRoundBase & {
   state: "revealing" | "complete";
+  revealEndsAt?: number;
   correctAnswer: string;
   mediaTitle?: string;
   mediaArtist?: string;

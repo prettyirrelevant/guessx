@@ -124,15 +124,19 @@ async function verifyToken(
   return claims as TokenClaims;
 }
 
-/** Creates a server-owned anonymous identity that clients cannot alter or forge. */
-export async function issueSession(secret: string): Promise<Session> {
+/** Creates or renews a server-owned anonymous identity that clients cannot alter or forge. */
+export async function issueSession(
+  secret: string,
+  subject: string = crypto.randomUUID(),
+): Promise<Session> {
+  if (subject.length < 1 || subject.length > 100) throw new Error("invalid session subject");
   const issuedAt = Math.floor(Date.now() / 1_000);
   const expiresAt = issuedAt + SESSION_TTL_SECONDS;
   const token = await signToken(
     {
       iss: TOKEN_ISSUER,
       aud: SESSION_AUDIENCE,
-      sub: crypto.randomUUID(),
+      sub: subject,
       iat: issuedAt,
       exp: expiresAt,
       purpose: "session",

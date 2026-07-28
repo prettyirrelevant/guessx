@@ -19,6 +19,11 @@ describe("authentication tokens", () => {
     expect(await verifySession(tampered, SECRET)).toBeNull();
   });
 
+  it("renews an existing anonymous identity", async () => {
+    const session = await issueSession(SECRET, "stable-user");
+    expect(await verifySession(session.token, SECRET)).toBe("stable-user");
+  });
+
   it("scopes socket tickets to one room and token purpose", async () => {
     const ticket = await issueSocketTicket("user-id", "AB-1234", SECRET);
     expect(await verifySocketTicket(ticket, "AB-1234", SECRET)).toBe("user-id");
