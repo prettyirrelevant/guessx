@@ -17,10 +17,9 @@ import {
   Info,
 } from "lucide-react";
 import { useDebouncedValue } from "@mantine/hooks";
-import { ACTOR_CATEGORIES, CONTINENTS } from "@guessx/content";
+import { ACTOR_CATEGORIES, CONTINENTS, POPULAR_ARTISTS } from "@guessx/game";
 
 import { useSession } from "@/lib/session";
-import { POPULAR_ARTISTS } from "@/lib/artists";
 import { createRoom, joinRoom, searchArtists } from "@/lib/actions";
 import { ProfileSetup } from "@/components/profile-setup";
 import { ModalDialog } from "@/components/modal-dialog";
@@ -143,7 +142,7 @@ function CreateRoomModal({
   const [totalRounds, setTotalRounds] = useState(5);
   const [roundDuration, setRoundDuration] = useState(20_000);
   const [actorCategory, setActorCategory] = useState<string>(ACTOR_CATEGORIES[0].code);
-  const [continent, setContinent] = useState(CONTINENTS[0].code);
+  const [continent, setContinent] = useState<string>(CONTINENTS[0].code);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -242,7 +241,7 @@ function CreateRoomModal({
     setError("");
 
     try {
-      const result = await createRoom({
+      const roomCode = await createRoom({
         mode,
         maxPlayers: Math.min(20, Math.max(2, maxPlayers)),
         totalRounds,
@@ -254,7 +253,7 @@ function CreateRoomModal({
         hostAvatar: avatar,
       });
 
-      router.push(`/room/${result.roomCode}`);
+      router.push(`/room/${roomCode}`);
     } catch {
       setError("something went wrong. try again.");
       setLoading(false);
@@ -607,21 +606,13 @@ function JoinRoomModal({
     setError("");
 
     try {
-      const result = await joinRoom({
+      const roomCode = await joinRoom({
         roomCode: cleaned,
         displayName,
         avatar,
       });
 
-      if (result && "error" in result) {
-        setError(result.error as string);
-        setLoading(false);
-        return;
-      }
-
-      if (result && "roomCode" in result) {
-        router.push(`/room/${result.roomCode}`);
-      }
+      router.push(`/room/${roomCode}`);
     } catch {
       setError("something went wrong. try again.");
       setLoading(false);

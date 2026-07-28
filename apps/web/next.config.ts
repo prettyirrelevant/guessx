@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@guessx/content", "@guessx/game"],
+  transpilePackages: ["@guessx/game", "@guessx/server"],
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
