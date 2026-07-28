@@ -12,6 +12,7 @@ import { PreparingScreen } from "@/components/game/preparing";
 import { Lobby } from "@/components/game/lobby";
 import { GameScreen } from "@/components/game/active-round";
 import { LoadingDots } from "@/components/fx/loading-dots";
+import { BrandLoader } from "@/components/fx/brand-loader";
 
 export function RoomScreen() {
   const { snapshot, status, error } = useRoomConnection();
@@ -38,14 +39,7 @@ export function RoomScreen() {
   if (status === "error") {
     return <RoomMessage title="Can't connect" message={error || "Try again in a moment."} />;
   }
-  if (!snapshot) {
-    return (
-      <View style={styles.center}>
-        <LoadingDots />
-        <Text style={styles.connectingText}>connecting to room</Text>
-      </View>
-    );
-  }
+  if (!snapshot) return <BrandLoader label="Connecting to room" />;
 
   const { room } = snapshot;
   if (room.state === "abandoned") {
@@ -102,13 +96,6 @@ const styles = StyleSheet.create((theme) => ({
     gap: theme.space[4],
     padding: theme.space[5],
     backgroundColor: theme.colors.bg,
-  },
-  connectingText: {
-    color: theme.colors.muted,
-    fontFamily: theme.fonts.mono,
-    fontSize: theme.fontSize.label,
-    letterSpacing: theme.tracking.label,
-    textTransform: "uppercase",
   },
   messageAction: {
     marginTop: theme.space[2],

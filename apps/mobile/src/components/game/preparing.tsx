@@ -11,7 +11,7 @@ import { haptics } from "@/lib/haptics";
 import { prepareGame } from "@/lib/api";
 import { Button, TextButton } from "@/components/ui";
 import { confirmClose, CopyableCode, SCREEN_ENTER } from "@/components/game/shared";
-import { LoadingDots } from "@/components/fx/loading-dots";
+import { PreparingMotif } from "@/components/fx/preparing-motif";
 
 export function PreparingScreen({ room }: { room: PublicRoom }) {
   const { command } = useRoomConnection();
@@ -64,9 +64,9 @@ export function PreparingScreen({ room }: { room: PublicRoom }) {
 
           {failed ? null : (
             <View style={styles.status}>
-              <LoadingDots />
+              <PreparingMotif mode={room.mode} />
               <Text style={styles.statusText}>
-                {room.isHost ? "setting up your game" : "the host is setting up"}
+                {room.isHost ? "building your game" : "the host is setting up"}
               </Text>
             </View>
           )}

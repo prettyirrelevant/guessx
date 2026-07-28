@@ -1,11 +1,15 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Github } from "lucide-react";
 
 import styles from "./footer.module.css";
 
 export function Footer() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/room/")) return null;
+
   return (
     <footer className={styles.footer}>
       <span className={styles.credit}>
@@ -19,6 +23,10 @@ export function Footer() {
           @eniolawtf
         </a>
       </span>
+      <span className={styles.dot}>·</span>
+      <Link href="/how-to-play" className={styles.textLink}>
+        how to play
+      </Link>
       <span className={styles.dot}>·</span>
       <Link href="/credits" className={styles.textLink}>
         credits

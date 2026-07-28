@@ -1,42 +1,27 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Copy, Check, Info, X } from "lucide-react";
+import { Copy, Check, Info } from "lucide-react";
 import { useClipboard, useWindowEvent } from "@mantine/hooks";
 import type { PublicRoom } from "@guessx/game";
 
 import { useRoomConnection } from "@/lib/room-connection";
 import { prepareGame } from "@/lib/actions";
 
-import styles from "./preparing-screen.module.css";
+import { PreparingMotif } from "./preparing-motif";
 
-const STEPS: Record<string, string[]> = {
-  music: ["setting up your room", "choosing your tracks", "preparing the choices"],
-  place: ["setting up your room", "choosing your logos", "preparing the choices"],
-  actor: ["setting up your room", "finding your actors", "preparing the choices"],
-  flag: ["setting up your room", "raising the flags", "preparing the choices"],
-};
+import styles from "./preparing-screen.module.css";
+import motif from "./preparing-motif.module.css";
 
 export function PreparingScreen({ room }: { room: PublicRoom }) {
-  const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState("");
   const clipboard = useClipboard({ timeout: 2000 });
   const { command } = useRoomConnection();
 
-  const steps = STEPS[room.mode];
-
   const prepare = useCallback(async () => {
     try {
       setError("");
-      setCurrentStep(0);
-      await new Promise((r) => setTimeout(r, 800));
-
-      setCurrentStep(1);
-
       await prepareGame(room._id);
-
-      setCurrentStep(2);
-      await new Promise((r) => setTimeout(r, 500));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "failed to set up the room. try again.");
     }
@@ -64,8 +49,6 @@ export function PreparingScreen({ room }: { room: PublicRoom }) {
     }
   };
 
-  const failedStep = error ? currentStep : -1;
-
   return (
     <div className={styles.container}>
       <div className={styles.card}>
@@ -78,57 +61,34 @@ export function PreparingScreen({ room }: { room: PublicRoom }) {
         </span>
         <p className={styles.hint}>share this code with your friends</p>
 
-        <div className={styles.steps}>
-          {steps.map((step, i) => (
-            <div key={step}>
-              <div
-                className={`${styles.step} ${
-                  i === failedStep
-                    ? styles.failed
-                    : i < currentStep
-                      ? styles.done
-                      : i === currentStep && !error
-                        ? styles.active
-                        : ""
-                }`}
-              >
-                <div className={styles.stepDot}>
-                  {i === failedStep ? (
-                    <X size={12} />
-                  ) : i < currentStep ? (
-                    <Check size={12} />
-                  ) : (
-                    i + 1
-                  )}
-                </div>
-                <span>{step}</span>
-              </div>
-
-              {i === failedStep && (
-                <div className={styles.stepError}>
-                  <p role="alert">{error}</p>
-                  {room.isHost && (
-                    <button className={styles.retryBtn} onClick={prepare}>
-                      try again
-                    </button>
-                  )}
-                </div>
+        <div className={motif.wrap}>
+          {error ? (
+            <div className={styles.stepError}>
+              <p role="alert">{error}</p>
+              {room.isHost && (
+                <button className={styles.retryBtn} onClick={prepare}>
+                  try again
+                </button>
               )}
             </div>
-          ))}
+          ) : (
+            <>
+              <PreparingMotif mode={room.mode} />
+              <span className={motif.label}>
+                {room.isHost ? "building your game" : "waiting for the host"}
+              </span>
+            </>
+          )}
         </div>
 
-        {!error && room.isHost && (
+        {!error && (
           <div className={styles.notice}>
             <Info size={16} className={styles.noticeIcon} />
-            <span>keep this tab open until setup is complete</span>
-          </div>
-        )}
-
-        {!error && !room.isHost && (
-          <div className={styles.notice}>
-            <Info size={16} className={styles.noticeIcon} />
-            <span>waiting for the host to finish setting up...</span>
+            <span>
+              {room.isHost
+                ? "keep this tab open until setup is complete"
+                : "the host is setting up the game"}
+            </span>
           </div>
         )}
 

@@ -2,14 +2,14 @@ import { StyleSheet } from "react-native-unistyles";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Text, View } from "react-native";
 import { useState } from "react";
-import { Shield } from "lucide-react-native";
+import { CircleHelp, Shield } from "lucide-react-native";
 import { router } from "expo-router";
 import { useRoomConnection } from "@guessx/server/react";
 import type { PublicPlayer, PublicRoom, RoomMode } from "@guessx/game";
 
 import { toast } from "@/lib/toast";
 import { haptics } from "@/lib/haptics";
-import { Avatar, Button, TextButton } from "@/components/ui";
+import { Avatar, Button, PressableScale, TextButton } from "@/components/ui";
 import {
   confirmClose,
   CopyableCode,
@@ -61,9 +61,17 @@ export function Lobby({ room }: { room: PublicRoom }) {
         <ExitButton />
       </TopBar>
 
-      <View style={styles.modeBadge}>
+      <PressableScale
+        accessibilityHint="How to play"
+        accessibilityRole="button"
+        haptic="selection"
+        onPress={() => router.push("/how-to-play")}
+        scaleTo={0.97}
+        style={styles.modeBadge}
+      >
         <Text style={styles.modeBadgeText}>{MODE_LABELS[room.mode]}</Text>
-      </View>
+        <CircleHelp color="#8a8a8a" size={14} />
+      </PressableScale>
 
       <View style={styles.settings}>
         <Setting label="rounds" value={String(room.totalRounds)} />
@@ -96,17 +104,13 @@ export function Lobby({ room }: { room: PublicRoom }) {
           <Button disabled={!canStart} loading={busy} onPress={() => run("start")}>
             {canStart ? "Start game" : `Need ${missing} more player${missing > 1 ? "s" : ""}`}
           </Button>
-          <TextButton onPress={() => router.push("/how-to-play")}>how to play</TextButton>
           <TextButton onPress={() => confirmClose(() => void run("close"))} tone="danger">
             close room
           </TextButton>
         </View>
       ) : (
-        <View style={styles.actions}>
-          <View style={styles.waiting}>
-            <Text style={styles.waitingText}>Waiting for the host to start…</Text>
-          </View>
-          <TextButton onPress={() => router.push("/how-to-play")}>how to play</TextButton>
+        <View style={styles.waiting}>
+          <Text style={styles.waitingText}>Waiting for the host to start…</Text>
         </View>
       )}
     </GameScroll>
@@ -140,6 +144,9 @@ function PlayerRow({ player, index }: { player: PublicPlayer; index: number }) {
 const styles = StyleSheet.create((theme) => ({
   modeBadge: {
     alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.space[2],
     paddingHorizontal: theme.space[3],
     paddingVertical: theme.space[1],
     borderWidth: 1,

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Copy, Check, Shield } from "lucide-react";
+import { Copy, Check, CircleHelp, Shield, X } from "lucide-react";
 import { useClipboard } from "@mantine/hooks";
 import type { PublicRoom } from "@guessx/game";
 
 import { getAvatarUrl } from "@/lib/session";
 import { useRoomConnection } from "@/lib/room-connection";
+import { HOW_TO_PLAY_RULES } from "@/lib/how-to-play";
 
 import styles from "./lobby.module.css";
 
@@ -16,6 +17,8 @@ export function Lobby({ room }: { room: PublicRoom }) {
   const players = snapshot?.players ?? [];
   const clipboard = useClipboard({ timeout: 2000 });
   const [actionError, setActionError] = useState("");
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const howToPlayDialog = useRef<HTMLDialogElement>(null);
 
   const isHost = room.isHost;
   const playerCount = players.length;
@@ -55,6 +58,13 @@ export function Lobby({ room }: { room: PublicRoom }) {
           ? "name the flag"
           : "guess the logo";
 
+  useEffect(() => {
+    const dialog = howToPlayDialog.current;
+    if (!dialog) return;
+    if (showHowToPlay && !dialog.open) dialog.showModal();
+    if (!showHowToPlay && dialog.open) dialog.close();
+  }, [showHowToPlay]);
+
   return (
     <div className={styles.container}>
       <div className={styles.content}>
@@ -72,7 +82,48 @@ export function Lobby({ room }: { room: PublicRoom }) {
           </span>
         </div>
 
-        <div className={styles.modeBadge}>{modeLabel}</div>
+        <button
+          type="button"
+          className={styles.modeBadge}
+          aria-label={`${modeLabel} — how to play`}
+          onClick={() => setShowHowToPlay(true)}
+        >
+          {modeLabel}
+          <CircleHelp size={13} />
+        </button>
+
+        <dialog
+          ref={howToPlayDialog}
+          aria-labelledby="how-to-play-title"
+          className={styles.helpDialog}
+          onCancel={() => setShowHowToPlay(false)}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShowHowToPlay(false);
+          }}
+          onClose={() => setShowHowToPlay(false)}
+        >
+          <div className={styles.helpCard}>
+            <div className={styles.helpHeader}>
+              <h2 id="how-to-play-title">how to play</h2>
+              <button
+                type="button"
+                className={styles.helpClose}
+                aria-label="close how to play"
+                onClick={() => setShowHowToPlay(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className={styles.helpList}>
+              {HOW_TO_PLAY_RULES.map((rule) => (
+                <section key={rule.title}>
+                  <h3>{rule.title}</h3>
+                  <p>{rule.description}</p>
+                </section>
+              ))}
+            </div>
+          </div>
+        </dialog>
 
         <div className={styles.settings}>
           <div className={styles.settingItem}>

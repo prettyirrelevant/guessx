@@ -60,9 +60,13 @@ function RoomContent() {
   }
   if (!snapshot) {
     return (
-      <div className={styles.loading}>
-        <div className={styles.spinner} />
-        <p>connecting...</p>
+      <div className={styles.loading} aria-label="connecting" aria-live="polite">
+        <span className={styles.brandLogo}>
+          guess<span className={styles.brandX}>X</span>
+        </span>
+        <span className={styles.brandBar}>
+          <span />
+        </span>
       </div>
     );
   }

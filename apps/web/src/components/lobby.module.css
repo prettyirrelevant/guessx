@@ -62,17 +62,121 @@
 }
 
 .modeBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  margin: 0 auto var(--space-5);
+  padding: var(--space-1) var(--space-3);
   font-family: var(--font-mono);
   font-size: var(--fs-label);
   color: var(--muted);
   border: 1px solid var(--border);
-  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
-  margin: 0 auto var(--space-5);
-  display: block;
-  width: fit-content;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.modeBadge svg {
+  color: var(--muted2);
+}
+
+.helpDialog {
+  width: min(520px, calc(100% - 32px));
+  max-height: min(720px, calc(100dvh - 32px));
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  overflow: visible;
+}
+
+.helpDialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.helpCard {
+  max-height: min(720px, calc(100dvh - 32px));
+  padding: var(--space-6);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+}
+
+.helpHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.helpHeader h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  letter-spacing: var(--tracking-tight);
+}
+
+.helpClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.helpList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.helpList section {
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.helpList section:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.helpList h3 {
+  margin-bottom: var(--space-2);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+}
+
+.helpList p {
+  color: var(--muted);
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-normal);
+}
+
+@media (hover: hover) {
+  .modeBadge:hover {
+    color: var(--text);
+    border-color: var(--muted2);
+  }
+
+  .helpClose:hover {
+    color: var(--text);
+    border-color: var(--muted2);
+  }
 }
 
 /* ---- settings summary ---- */

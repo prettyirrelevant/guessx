@@ -21,6 +21,7 @@ import { Avatar } from "@/components/ui";
 import { TimerBar } from "@/components/timer-bar";
 import { ExitButton, GameScroll, SCREEN_ENTER } from "@/components/game/shared";
 import { RevealScreen } from "@/components/game/reveal";
+import { BrandLoader } from "@/components/fx/brand-loader";
 import { AnswerOption } from "@/components/fx/answer-option";
 import { AudioPlayer } from "@/components/audio-player";
 
@@ -37,13 +38,7 @@ export function GameScreen({ room }: { room: PublicRoom }) {
   const players = snapshot?.players;
   const currentPlayer = players?.find((p) => p.isCurrent);
 
-  if (!round || !players || !currentPlayer) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color="#c8f135" />
-      </View>
-    );
-  }
+  if (!round || !players || !currentPlayer) return <BrandLoader label="Loading game" />;
 
   if (round.state === "revealing" || round.state === "complete") {
     return (
