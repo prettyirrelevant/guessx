@@ -75,10 +75,6 @@
     gap: 0;
   }
 
-  .dot {
-    display: none;
-  }
-
   .link {
     width: 40px;
     height: 40px;
