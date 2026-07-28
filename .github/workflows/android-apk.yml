@@ -41,6 +41,10 @@ jobs:
       - name: install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: prebuild android
+        working-directory: apps/mobile
+        run: pnpm expo prebuild -p android --no-install
+
       - name: build release apk
         working-directory: apps/mobile/android
         run: ./gradlew assembleRelease --no-daemon
