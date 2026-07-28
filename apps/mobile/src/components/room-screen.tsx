@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { useRoomConnection } from "@guessx/server/react";
 
 import { toast } from "@/lib/toast";
-import { Body, Button, Title } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { ResultsScreen } from "@/components/game/results";
 import { PreparingScreen } from "@/components/game/preparing";
 import { Lobby } from "@/components/game/lobby";
@@ -73,12 +73,16 @@ export function RoomScreen() {
 function RoomMessage({ title, message }: { title: string; message: string }) {
   return (
     <View style={styles.center}>
-      <Title>{title}</Title>
-      <Body muted>{message}</Body>
-      <View style={styles.messageAction}>
-        <Button onPress={() => router.replace("/")} variant="secondary">
-          Back to home
-        </Button>
+      <View style={styles.messageContent}>
+        <Text accessibilityRole="header" style={styles.messageTitle}>
+          {title}
+        </Text>
+        <Text style={styles.messageText}>{message}</Text>
+        <View style={styles.messageAction}>
+          <Button onPress={() => router.replace("/")} variant="secondary">
+            Back to home
+          </Button>
+        </View>
       </View>
     </View>
   );
@@ -97,7 +101,29 @@ const styles = StyleSheet.create((theme) => ({
     padding: theme.space[5],
     backgroundColor: theme.colors.bg,
   },
+  messageContent: {
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+    gap: theme.space[4],
+  },
+  messageTitle: {
+    color: theme.colors.text,
+    fontFamily: theme.fonts.display,
+    fontSize: theme.fontSize.displayMd,
+    letterSpacing: theme.tracking.tight,
+    lineHeight: 30,
+    textAlign: "center",
+  },
+  messageText: {
+    color: theme.colors.muted,
+    fontSize: theme.fontSize.body,
+    lineHeight: 23,
+    textAlign: "center",
+  },
   messageAction: {
+    width: "100%",
+    maxWidth: 240,
     marginTop: theme.space[2],
   },
   banner: {

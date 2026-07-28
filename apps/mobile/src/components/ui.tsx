@@ -117,12 +117,14 @@ export function Field(props: ComponentProps<typeof TextInput>) {
 
 export function Button({
   children,
+  compact = false,
   disabled,
   loading = false,
   onPress,
   variant = "primary",
 }: {
   children: ReactNode;
+  compact?: boolean;
   disabled?: boolean;
   loading?: boolean;
   onPress?: () => void;
@@ -140,6 +142,7 @@ export function Button({
       onPress={onPress}
       style={[
         styles.button,
+        compact && styles.buttonCompact,
         variant === "secondary" && styles.buttonSecondary,
         variant === "danger" && styles.buttonDanger,
         variant === "accentOutline" && styles.buttonAccentOutline,
@@ -150,6 +153,7 @@ export function Button({
         <ActivityIndicator color={variant === "primary" ? "#0a0a0a" : "#f0f0f0"} size="small" />
       ) : (
         <Text
+          numberOfLines={1}
           style={[
             styles.buttonText,
             variant === "secondary" && styles.buttonTextSecondary,
@@ -302,6 +306,9 @@ const styles = StyleSheet.create((theme) => ({
     borderCurve: "continuous",
     paddingHorizontal: theme.space[5],
     backgroundColor: theme.colors.accent,
+  },
+  buttonCompact: {
+    paddingHorizontal: theme.space[2],
   },
   buttonSecondary: {
     borderWidth: 1,

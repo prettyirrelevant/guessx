@@ -13,6 +13,7 @@
 
 .credit {
   color: var(--muted2);
+  white-space: nowrap;
 }
 
 .author {
@@ -25,6 +26,7 @@
   min-height: 44px;
   align-items: center;
   color: var(--muted);
+  white-space: nowrap;
   transition: color var(--transition-fast);
 }
 
@@ -53,5 +55,32 @@
   .textLink:hover,
   .link:hover {
     color: var(--text);
+  }
+}
+
+@media (max-width: 480px) {
+  .footer {
+    gap: var(--space-1);
+    padding: var(--space-2);
+    font-size: var(--fs-label-sm);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .textLink {
+    min-height: 40px;
+  }
+
+  .links {
+    gap: 0;
+  }
+
+  .dot {
+    display: none;
+  }
+
+  .link {
+    width: 40px;
+    height: 40px;
   }
 }

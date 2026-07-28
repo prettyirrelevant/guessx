@@ -645,15 +645,3 @@
   margin-top: var(--space-2);
   text-align: center;
 }
-
-@media (max-width: 480px) {
-  .actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .btnPrimary,
-  .btnSecondary {
-    width: 100%;
-  }
-}

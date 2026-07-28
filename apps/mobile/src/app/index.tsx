@@ -100,10 +100,16 @@ export default function HomeScreen() {
               </PressableScale>
 
               <View style={styles.actions}>
-                <Button onPress={() => router.push("/create")}>Create room</Button>
-                <Button onPress={() => router.push("/join")} variant="secondary">
-                  Join room
-                </Button>
+                <View style={styles.action}>
+                  <Button compact onPress={() => router.push("/create")}>
+                    Create room
+                  </Button>
+                </View>
+                <View style={styles.action}>
+                  <Button compact onPress={() => router.push("/join")} variant="secondary">
+                    Join room
+                  </Button>
+                </View>
               </View>
             </View>
           </Animated.View>
@@ -234,7 +240,11 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.title,
   },
   actions: {
+    flexDirection: "row",
     gap: theme.space[3],
+  },
+  action: {
+    flex: 1,
   },
   card: {
     gap: theme.space[3],
