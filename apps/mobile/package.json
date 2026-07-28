@@ -17,7 +17,6 @@
   "dependencies": {
     "@guessx/game": "workspace:*",
     "@guessx/server": "workspace:*",
-    "@shopify/react-native-skia": "2.6.2",
     "expo": "~57.0.8",
     "expo-audio": "~57.0.3",
     "expo-blur": "~57.0.2",
