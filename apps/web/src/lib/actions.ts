@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { createClient } from "@guessx/server/client";
+import type { CreateRoomInput, JoinRoomInput } from "@guessx/game";
 
 const SESSION_COOKIE =
   process.env.NODE_ENV === "production" ? "__Host-guessx-session" : "guessx-session";
@@ -35,4 +36,32 @@ const client = createClient({
   },
 });
 
-export const { createRoom, joinRoom, getRoomSocketTicket, prepareGame, searchArtists } = client;
+export type ActionResult<T> = { value: T } | { error: string };
+
+async function settle<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
+  try {
+    return { value: await run() };
+  } catch (cause) {
+    return { error: cause instanceof Error ? cause.message : "request failed" };
+  }
+}
+
+export async function createRoom(input: CreateRoomInput) {
+  return settle(() => client.createRoom(input));
+}
+
+export async function joinRoom(input: JoinRoomInput) {
+  return settle(() => client.joinRoom(input));
+}
+
+export async function getRoomSocketTicket(input: JoinRoomInput) {
+  return settle(() => client.getRoomSocketTicket(input));
+}
+
+export async function prepareGame(roomCode: string) {
+  return settle(() => client.prepareGame(roomCode));
+}
+
+export async function searchArtists(query: string) {
+  return settle(() => client.searchArtists(query));
+}

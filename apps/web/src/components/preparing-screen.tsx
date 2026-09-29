@@ -6,7 +6,7 @@ import { useClipboard, useWindowEvent } from "@mantine/hooks";
 import type { PublicRoom } from "@guessx/game";
 
 import { useRoomConnection } from "@/lib/room-connection";
-import { prepareGame } from "@/lib/actions";
+import { prepareGame } from "@/lib/api";
 
 import { PreparingMotif } from "./preparing-motif";
 
@@ -23,6 +23,7 @@ export function PreparingScreen({ room }: { room: PublicRoom }) {
       setError("");
       await prepareGame(room._id);
     } catch (cause) {
+      if (cause instanceof Error && cause.message === "room preparation already started") return;
       setError(cause instanceof Error ? cause.message : "failed to set up the room. try again.");
     }
   }, [room._id]);

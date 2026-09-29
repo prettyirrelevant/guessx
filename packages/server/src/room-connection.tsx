@@ -23,6 +23,7 @@ type ConnectionValue = {
   status: "connecting" | "connected" | "not_found" | "error";
   error: string;
   command: (command: CommandName, args?: CommandArgs) => Promise<CommandResult>;
+  serverNow: () => number;
 };
 
 type PendingCommand = {
@@ -38,6 +39,8 @@ type RoomConnectionProviderProps = JoinRoomInput & {
 };
 
 const RoomConnectionContext = createContext<ConnectionValue | null>(null);
+const COMMAND_TIMEOUT_MS = 15_000;
+const CLOCK_SAMPLES = 5;
 
 export function RoomConnectionProvider({
   roomCode,
@@ -53,6 +56,8 @@ export function RoomConnectionProvider({
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [status, setStatus] = useState<ConnectionValue["status"]>("connecting");
   const [error, setError] = useState("");
+  const clockSamples = useRef<number[]>([]);
+  const clockOffset = useRef(0);
 
   useEffect(() => {
     const pendingCommands = pendingRef.current;
@@ -91,6 +96,9 @@ export function RoomConnectionProvider({
       }
 
       if (message.type === "snapshot") {
+        const samples = [...clockSamples.current, message.snapshot.serverTime - Date.now()];
+        clockSamples.current = samples.slice(-CLOCK_SAMPLES);
+        clockOffset.current = Math.max(...clockSamples.current);
         setSnapshot(message.snapshot);
         setStatus("connected");
         setError("");
@@ -134,7 +142,7 @@ export function RoomConnectionProvider({
     (name: CommandName, args?: CommandArgs) =>
       new Promise<CommandResult>((resolve) => {
         const socket = socketRef.current;
-        if (!socket || socket.readyState !== 1) {
+        if (!socket) {
           resolve({ error: "not connected" });
           return;
         }
@@ -143,16 +151,18 @@ export function RoomConnectionProvider({
         const timeout = setTimeout(() => {
           pendingRef.current.delete(requestId);
           resolve({ error: "request timed out" });
-        }, 10_000);
+        }, COMMAND_TIMEOUT_MS);
         pendingRef.current.set(requestId, { resolve, timeout });
         socket.send(JSON.stringify({ type: "command", requestId, command: name, args }));
       }),
     [randomUUID],
   );
 
+  const serverNow = useCallback(() => Date.now() + clockOffset.current, []);
+
   const value = useMemo(
-    () => ({ snapshot, status, error, command }),
-    [command, error, snapshot, status],
+    () => ({ snapshot, status, error, command, serverNow }),
+    [command, error, serverNow, snapshot, status],
   );
 
   return <RoomConnectionContext value={value}>{children}</RoomConnectionContext>;
@@ -162,4 +172,20 @@ export function useRoomConnection(): ConnectionValue {
   const value = use(RoomConnectionContext);
   if (!value) throw new Error("useRoomConnection must be used inside RoomConnectionProvider");
   return value;
+}
+
+export function useSecondsLeft(deadline: number | undefined): number {
+  const { serverNow } = useRoomConnection();
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const update = () =>
+      setSeconds(deadline ? Math.ceil(Math.max(0, deadline - serverNow()) / 1_000) : 0);
+    update();
+    if (!deadline) return;
+    const interval = setInterval(update, 200);
+    return () => clearInterval(interval);
+  }, [deadline, serverNow]);
+
+  return seconds;
 }

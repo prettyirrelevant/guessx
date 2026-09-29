@@ -7,26 +7,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Text, View } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useSecondsLeft } from "@guessx/server/react";
 
 export function TimerBar({ startedAt, endsAt }: { startedAt?: number; endsAt?: number }) {
-  const [secondsLeft, setSecondsLeft] = useState(0);
-  const [totalSeconds, setTotalSeconds] = useState(0);
+  const secondsLeft = useSecondsLeft(endsAt);
+  const totalSeconds =
+    startedAt && endsAt && endsAt > startedAt ? Math.ceil((endsAt - startedAt) / 1_000) : 0;
   const pulse = useSharedValue(1);
-
-  useEffect(() => {
-    if (!startedAt || !endsAt || endsAt <= startedAt) {
-      setSecondsLeft(0);
-      setTotalSeconds(0);
-      return;
-    }
-    setTotalSeconds(Math.ceil((endsAt - startedAt) / 1_000));
-    setSecondsLeft(Math.ceil(Math.max(0, (endsAt - Date.now()) / 1_000)));
-    const tick = setInterval(() => {
-      setSecondsLeft(Math.ceil(Math.max(0, (endsAt - Date.now()) / 1_000)));
-    }, 200);
-    return () => clearInterval(tick);
-  }, [startedAt, endsAt]);
 
   const urgent = secondsLeft <= 5 && secondsLeft > 0;
   const warning = secondsLeft <= 10 && !urgent;

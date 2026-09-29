@@ -25,6 +25,8 @@ const MODE_LABELS: Record<RoomMode, string> = {
   place: "guess the logo",
 };
 
+const EMPTY_SLOTS_SHOWN = 2;
+
 export function Lobby({ room }: { room: PublicRoom }) {
   const { snapshot, command } = useRoomConnection();
   const players = snapshot?.players ?? [];
@@ -33,7 +35,7 @@ export function Lobby({ room }: { room: PublicRoom }) {
   const connected = players.filter((p) => p.status === "connected").length;
   const canStart = room.isHost && connected >= 2;
   const missing = Math.max(0, 2 - connected);
-  const emptySlots = Math.max(0, room.maxPlayers - players.length);
+  const emptySlots = Math.max(0, Math.min(EMPTY_SLOTS_SHOWN, room.maxPlayers - players.length));
 
   const run = async (name: "start" | "close") => {
     if (busy) return;
@@ -129,11 +131,12 @@ function Setting({ label, value, last }: { label: string; value: string; last?: 
 function PlayerRow({ player, index }: { player: PublicPlayer; index: number }) {
   return (
     <Animated.View entering={FadeInDown.delay(index * 40).duration(260)}>
-      <View style={styles.playerRow}>
+      <View style={[styles.playerRow, player.status !== "connected" && styles.playerOffline]}>
         <Avatar seed={player.avatar} size={30} />
         <Text numberOfLines={1} style={styles.playerName}>
           {player.displayName}
         </Text>
+        {player.status !== "connected" ? <Text style={styles.youTag}>offline</Text> : null}
         {player.isCurrent ? <Text style={styles.youTag}>you</Text> : null}
         {player.isHost ? <Shield color="#c8f135" fill="#c8f135" size={16} /> : null}
       </View>
@@ -231,6 +234,9 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.text,
     fontSize: theme.fontSize.bodySm,
     fontWeight: "600",
+  },
+  playerOffline: {
+    opacity: 0.5,
   },
   youTag: {
     color: theme.colors.accent,

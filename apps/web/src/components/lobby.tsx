@@ -12,6 +12,8 @@ import { HOW_TO_PLAY_RULES } from "@/lib/how-to-play";
 
 import styles from "./lobby.module.css";
 
+const EMPTY_SLOTS_SHOWN = 2;
+
 export function Lobby({ room }: { room: PublicRoom }) {
   const { snapshot, command } = useRoomConnection();
   const players = snapshot?.players ?? [];
@@ -150,7 +152,12 @@ export function Lobby({ room }: { room: PublicRoom }) {
 
           <div className={styles.playerList}>
             {players.map((player) => (
-              <div key={player._id} className={styles.playerRow}>
+              <div
+                key={player._id}
+                className={`${styles.playerRow} ${
+                  player.status === "connected" ? "" : styles.playerOffline
+                }`}
+              >
                 <Image
                   src={getAvatarUrl(player.avatar)}
                   alt={player.displayName}
@@ -160,11 +167,17 @@ export function Lobby({ room }: { room: PublicRoom }) {
                   unoptimized
                 />
                 <span className={styles.playerName}>{player.displayName}</span>
-                {player.isHost && <Shield size={18} className={styles.hostIcon} />}
+                {player.status !== "connected" && <span className={styles.playerTag}>offline</span>}
+                {player.isCurrent && <span className={styles.playerTag}>you</span>}
+                {player.isHost && (
+                  <Shield size={18} className={styles.hostIcon} aria-label="host" />
+                )}
               </div>
             ))}
 
-            {Array.from({ length: room.maxPlayers - playerCount }).map((_, i) => (
+            {Array.from({
+              length: Math.min(EMPTY_SLOTS_SHOWN, room.maxPlayers - playerCount),
+            }).map((_, i) => (
               <div key={`empty-${i}`} className={styles.emptySlot}>
                 <span className={styles.emptyDot} />
                 <span>waiting...</span>

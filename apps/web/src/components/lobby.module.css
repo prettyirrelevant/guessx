@@ -272,6 +272,10 @@
   font-size: var(--fs-body-sm);
   color: var(--text);
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hostIcon {
@@ -372,4 +376,16 @@
   .content {
     padding: var(--space-5);
   }
+}
+
+.playerOffline {
+  opacity: 0.5;
+}
+
+.playerTag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
 }

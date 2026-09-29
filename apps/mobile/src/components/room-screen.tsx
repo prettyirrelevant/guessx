@@ -4,8 +4,10 @@ import { Text, View } from "react-native";
 import { useEffect, useRef } from "react";
 import { router } from "expo-router";
 import { useRoomConnection } from "@guessx/server/react";
+import { useMediaPrefetch } from "@guessx/server/media";
 
 import { toast } from "@/lib/toast";
+import { mediaLoader } from "@/lib/media";
 import { Button } from "@/components/ui";
 import { ResultsScreen } from "@/components/game/results";
 import { PreparingScreen } from "@/components/game/preparing";
@@ -17,6 +19,7 @@ import { BrandLoader } from "@/components/fx/brand-loader";
 export function RoomScreen() {
   const { snapshot, status, error } = useRoomConnection();
   const insets = useSafeAreaInsets();
+  useMediaPrefetch(mediaLoader, snapshot?.prefetch);
 
   // Announce a recovered connection (only after we'd been connected once).
   const everConnected = useRef(false);

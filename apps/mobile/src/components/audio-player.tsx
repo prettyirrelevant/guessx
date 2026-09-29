@@ -1,17 +1,12 @@
 import { StyleSheet } from "react-native-unistyles";
-import {
-  ActivityIndicator,
-  Text,
-  View,
-  type GestureResponderEvent,
-  type LayoutChangeEvent,
-} from "react-native";
+import { Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, Volume2, VolumeX } from "lucide-react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 
 import { haptics } from "@/lib/haptics";
 import { PressableScale } from "@/components/ui";
+import { LoadingDots } from "@/components/fx/loading-dots";
 
 const BAR_COUNT = 40;
 
@@ -61,10 +56,13 @@ export function AudioPlayer({ source }: { source: string }) {
   if (!status.isLoaded || failed) {
     return (
       <View accessibilityLiveRegion="polite" style={styles.loadState}>
-        {failed ? null : <ActivityIndicator color="#c8f135" />}
-        <Text accessibilityRole={failed ? "alert" : undefined} style={styles.loadText}>
-          {failed ? "Audio could not be loaded" : "Loading audio…"}
-        </Text>
+        {failed ? (
+          <Text accessibilityRole="alert" style={styles.loadText}>
+            Audio could not be loaded
+          </Text>
+        ) : (
+          <LoadingDots />
+        )}
       </View>
     );
   }

@@ -24,6 +24,7 @@ import {
   createGame,
   disconnectPlayer,
   joinGame,
+  mediaSource,
   nextAlarm,
   processAlarm,
   releasePreparationClaim,
@@ -39,6 +40,8 @@ import type { Env } from "./env";
 const GAME_KEY = "game";
 const MAX_CLIENT_MESSAGE_BYTES = 8_192;
 const ROOM_CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const COMMAND_BURST = 10;
+const COMMANDS_PER_SECOND = 4;
 const messageEncoder = new TextEncoder();
 export const AUTHENTICATED_USER_HEADER = "x-guessx-user-id";
 
@@ -73,6 +76,25 @@ function parseMessage(message: WSMessage) {
 
 export class GuessRoom extends Server<Env> {
   static options = { hibernate: true };
+
+  private commandBudgets = new Map<string, { tokens: number; updatedAt: number }>();
+
+  private allowCommand(connectionId: string): boolean {
+    const now = Date.now();
+    const budget = this.commandBudgets.get(connectionId) ?? {
+      tokens: COMMAND_BURST,
+      updatedAt: now,
+    };
+    budget.tokens = Math.min(
+      COMMAND_BURST,
+      budget.tokens + ((now - budget.updatedAt) / 1_000) * COMMANDS_PER_SECOND,
+    );
+    budget.updatedAt = now;
+    this.commandBudgets.set(connectionId, budget);
+    if (budget.tokens < 1) return false;
+    budget.tokens -= 1;
+    return true;
+  }
 
   /** Writes the game and keeps its single Durable Object alarm aligned with the next deadline. */
   private async persist(transaction: DurableObjectTransaction, game: StoredGame): Promise<void> {
@@ -120,10 +142,11 @@ export class GuessRoom extends Server<Env> {
     const game = await this.ctx.storage.get<StoredGame>(GAME_KEY);
     if (!game) return;
 
+    const now = Date.now();
     for (const connection of this.getConnections<ConnectionIdentity>()) {
       const userId = connection.state?.userId;
       if (!userId) continue;
-      this.send(connection, { type: "snapshot", snapshot: snapshotFor(game, userId) });
+      this.send(connection, { type: "snapshot", snapshot: snapshotFor(game, userId, now) });
     }
   }
 
@@ -181,20 +204,19 @@ export class GuessRoom extends Server<Env> {
     });
   }
 
-  async cancelPreparation(userId: string, claimId: string): Promise<void> {
-    await this.mutateGame((game) => releasePreparationClaim(game, userId, claimId));
+  async cancelPreparation(claimId: string): Promise<void> {
+    await this.mutateGame((game) => releasePreparationClaim(game, claimId));
   }
 
-  async completePreparation(
-    userId: string,
-    claimId: string,
-    rounds: RoundContent[],
-  ): Promise<CommandResult> {
-    const result = await this.mutateGame((game) =>
-      completePreparation(game, userId, claimId, rounds),
-    );
+  async completePreparation(claimId: string, rounds: RoundContent[]): Promise<CommandResult> {
+    const result = await this.mutateGame((game) => completePreparation(game, claimId, rounds));
     if (result.success) await this.broadcastSnapshots();
     return result;
+  }
+
+  async mediaSource(roundId: string) {
+    const game = await this.ctx.storage.get<StoredGame>(GAME_KEY);
+    return game ? mediaSource(game, roundId) : null;
   }
 
   /** Connects a verified room member and persists their identity across hibernation. */
@@ -236,11 +258,11 @@ export class GuessRoom extends Server<Env> {
     }
 
     const userId = connection.state?.userId;
-    if (!userId) {
+    if (!userId || !this.allowCommand(connection.id)) {
       this.send(connection, {
         type: "commandResult",
         requestId: message.requestId,
-        result: { error: "connection is not authenticated" },
+        result: { error: userId ? "too many requests" : "connection is not authenticated" },
       });
       return;
     }
@@ -348,6 +370,7 @@ export class GuessRoom extends Server<Env> {
 
   /** Marks a player disconnected only after their final live connection closes. */
   private async handleDisconnect(connection: Connection<ConnectionIdentity>): Promise<void> {
+    this.commandBudgets.delete(connection.id);
     const userId = connection.state?.userId;
     if (!userId || this.hasAnotherConnection(userId, connection.id)) return;
 

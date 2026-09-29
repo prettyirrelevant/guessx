@@ -10,11 +10,10 @@ import Animated, {
 import { Text, View } from "react-native";
 import { useEffect, useMemo, useState } from "react";
 import { Check, X } from "lucide-react-native";
-import { useRoomConnection } from "@guessx/server/react";
+import { useRoomConnection, useSecondsLeft } from "@guessx/server/react";
 import type { PublicAnswer, PublicPlayer, PublicRoom, RevealedRound } from "@guessx/game";
 
 import { toast } from "@/lib/toast";
-import { secondsUntil } from "@/lib/time";
 import { haptics } from "@/lib/haptics";
 import { Avatar, Button } from "@/components/ui";
 import { ExitButton, GameScroll, TopBar } from "@/components/game/shared";
@@ -35,10 +34,10 @@ export function RevealScreen({
   currentPlayer: PublicPlayer;
 }) {
   const { snapshot, command } = useRoomConnection();
-  const [countdown, setCountdown] = useState(() => secondsUntil(round.revealEndsAt));
+  const revealing = round.state === "revealing";
+  const countdown = useSecondsLeft(revealing ? round.revealEndsAt : undefined);
   const [showSkip, setShowSkip] = useState(false);
   const [skipping, setSkipping] = useState(false);
-  const revealing = round.state === "revealing";
 
   useEffect(() => {
     if (!revealing) {
@@ -46,15 +45,10 @@ export function RevealScreen({
       setSkipping(false);
       return;
     }
-    const updateCountdown = () => setCountdown(secondsUntil(round.revealEndsAt));
-    updateCountdown();
-    const tick = setInterval(updateCountdown, 250);
-    const skipDelay = room.isHost ? setTimeout(() => setShowSkip(true), 3_000) : undefined;
-    return () => {
-      clearInterval(tick);
-      if (skipDelay) clearTimeout(skipDelay);
-    };
-  }, [round._id, round.revealEndsAt, revealing, room.isHost]);
+    if (!room.isHost) return;
+    const skipDelay = setTimeout(() => setShowSkip(true), 3_000);
+    return () => clearTimeout(skipDelay);
+  }, [round._id, revealing, room.isHost]);
 
   const answers = useMemo(
     () => (snapshot?.answers ?? []).filter((a): a is FullAnswer => "selectedOption" in a),

@@ -162,6 +162,7 @@ export async function prepareMusicContent(
     mediaUrl: string;
     mediaTitle: string;
     mediaArtist: string;
+    mediaSourceId: string;
     artistIndex: number;
   }[] = [];
   const cursors = tracksByArtist.map(() => 0);
@@ -181,6 +182,7 @@ export async function prepareMusicContent(
           mediaUrl: track.preview,
           mediaTitle: track.title,
           mediaArtist: track.artist.name,
+          mediaSourceId: String(track.id),
           artistIndex: a,
         });
         addedThisPass = true;
@@ -218,6 +220,7 @@ export async function prepareMusicContent(
       mediaUrl: candidate.mediaUrl,
       mediaTitle: candidate.mediaTitle,
       mediaArtist: candidate.mediaArtist,
+      mediaSourceId: candidate.mediaSourceId,
       isFinal: rounds.length === roundsRequested - 1,
     });
   }

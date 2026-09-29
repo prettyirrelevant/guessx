@@ -4,9 +4,10 @@ import type { ReactNode } from "react";
 import {
   RoomConnectionProvider as SharedRoomConnectionProvider,
   useRoomConnection,
+  useSecondsLeft,
 } from "@guessx/server/react";
 
-import { getRoomSocketTicket } from "@/lib/actions";
+import { getRoomSocketTicket } from "@/lib/api";
 
 const randomUUID = () => crypto.randomUUID();
 const socketOptions = () => ({
@@ -39,4 +40,4 @@ export function RoomConnectionProvider({
   );
 }
 
-export { useRoomConnection };
+export { useRoomConnection, useSecondsLeft };

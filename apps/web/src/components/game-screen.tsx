@@ -6,10 +6,12 @@ import { Check } from "lucide-react";
 import type { ActiveRound, PublicAnswer, PublicPlayer, PublicRoom } from "@guessx/game";
 
 import { getAvatarUrl } from "@/lib/session";
-import { useRoomConnection } from "@/lib/room-connection";
+import { useRoomConnection, useSecondsLeft } from "@/lib/room-connection";
+import { mediaLoader, useRoundMedia } from "@/lib/media";
 
 import { TimerBar } from "./timer-bar";
 import { RevealScreen } from "./reveal-screen";
+import { LoadingDots } from "./loading-dots";
 import { AudioPlayer } from "./audio-player";
 
 import styles from "./game-screen.module.css";
@@ -46,6 +48,13 @@ export function GameScreen({ room }: { room: PublicRoom }) {
   );
 }
 
+const PROMPTS: Record<PublicRoom["mode"], string> = {
+  music: "name that track",
+  actor: "who is this?",
+  flag: "which country?",
+  place: "which logo?",
+};
+
 function ActiveRound({
   room,
   round,
@@ -59,93 +68,64 @@ function ActiveRound({
   currentPlayer: PublicPlayer;
   answers: PublicAnswer[];
 }) {
-  const { command } = useRoomConnection();
-
+  const { command, serverNow } = useRoomConnection();
+  const media = useRoundMedia(mediaLoader, round.media);
+  const [started, setStarted] = useState(() => serverNow() >= (round.startedAt ?? 0));
   const [selected, setSelected] = useState<string | null>(null);
-  const [locked, setLocked] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const lockedRef = useRef(false);
-  const [showFinalIntro, setShowFinalIntro] = useState(
-    () => round.isFinal && Date.now() < (round.startedAt ?? 0),
-  );
 
-  // reset state on new round
   useEffect(() => {
     setSelected(null);
-    setLocked(false);
     setSubmitError("");
     lockedRef.current = false;
-    const remainingIntro = round.isFinal ? Math.max(0, (round.startedAt ?? 0) - Date.now()) : 0;
-    setShowFinalIntro(remainingIntro > 0);
-    if (remainingIntro === 0) return;
-    const timeout = window.setTimeout(() => setShowFinalIntro(false), remainingIntro);
+    const remaining = (round.startedAt ?? 0) - serverNow();
+    setStarted(remaining <= 0);
+    if (remaining <= 0) return;
+    const timeout = window.setTimeout(() => setStarted(true), remaining);
     return () => window.clearTimeout(timeout);
-  }, [round._id, round.isFinal, round.startedAt]);
+  }, [round._id, round.startedAt, serverNow]);
+
+  const answeredPlayerIds = useMemo(
+    () => new Set(answers.map((answer) => answer.playerId)),
+    [answers],
+  );
+  const locked = selected !== null || answeredPlayerIds.has(currentPlayer._id);
 
   const handleSelect = useCallback(
     async (option: string) => {
       if (lockedRef.current) return;
       lockedRef.current = true;
-
       setSelected(option);
-      setLocked(true);
       setSubmitError("");
 
-      try {
-        const result = await command("submitAnswer", {
-          roundId: round._id,
-          selectedOption: option,
-        });
-        if (result?.error) throw new Error(result.error);
-      } catch (cause) {
-        lockedRef.current = false;
-        setLocked(false);
-        setSelected(null);
-        setSubmitError(cause instanceof Error ? cause.message : "answer was not submitted");
-      }
+      const result = await command("submitAnswer", { roundId: round._id, selectedOption: option });
+      if (!result.error || result.error === "already answered") return;
+      lockedRef.current = false;
+      setSelected(null);
+      setSubmitError(result.error);
     },
     [round._id, command],
   );
 
   useEffect(() => {
+    if (!started) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey || lockedRef.current) return;
       const target = event.target as HTMLElement | null;
       if (target?.matches("input, select, textarea, [contenteditable='true']")) return;
       const index = event.key.toLowerCase().charCodeAt(0) - 97;
-      if (index < 0 || index >= round.options.length) return;
+      if (event.key.length !== 1 || index < 0 || index >= round.options.length) return;
       event.preventDefault();
       void handleSelect(round.options[index]);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSelect, round.options]);
+  }, [handleSelect, round.options, started]);
 
-  const answeredPlayerIds = useMemo(
-    () => new Set(answers?.filter((a) => "playerId" in a).map((a) => a.playerId) ?? []),
-    [answers],
-  );
-
-  if (showFinalIntro) {
-    return (
-      <div className={styles.finalIntro}>
-        <div className={styles.finalIntroContent}>
-          <div className={styles.finalLabel}>final round</div>
-          <div className={styles.finalMultiplier}>2×</div>
-          <p className={styles.finalSubtext}>everything counts double. including mistakes.</p>
-        </div>
-      </div>
-    );
+  if (!started) {
+    return <LeadIn round={round} totalRounds={room.totalRounds} />;
   }
-
-  const prompt =
-    room.mode === "music"
-      ? "name that track"
-      : room.mode === "actor"
-        ? "who is this?"
-        : room.mode === "flag"
-          ? "which country?"
-          : "which logo?";
 
   return (
     <div className={styles.container}>
@@ -170,46 +150,8 @@ function ActiveRound({
       <TimerBar startedAt={round.startedAt} endsAt={round.endsAt} />
 
       <main className={styles.stageMain}>
-        <p className={styles.prompt}>{prompt}</p>
-        {room.mode === "music" ? (
-          <AudioPlayer src={round.mediaUrl} />
-        ) : room.mode === "actor" ? (
-          <div className={styles.actorCard}>
-            <Image
-              src={round.mediaUrl}
-              alt="guess this actor"
-              className={styles.actorImg}
-              width={421}
-              height={632}
-              priority
-              sizes="200px"
-            />
-          </div>
-        ) : room.mode === "flag" ? (
-          <div className={styles.flagCard}>
-            <Image
-              src={round.mediaUrl}
-              alt="guess this flag"
-              className={styles.flagImg}
-              width={480}
-              height={320}
-              priority
-              sizes="(max-width: 540px) calc(100vw - 82px), 410px"
-            />
-          </div>
-        ) : (
-          <div className={styles.logoCard}>
-            <Image
-              src={round.mediaUrl}
-              alt="guess this logo"
-              className={styles.logoImg}
-              width={240}
-              height={240}
-              priority
-              unoptimized
-            />
-          </div>
-        )}
+        <p className={styles.prompt}>{PROMPTS[room.mode]}</p>
+        <Media mode={room.mode} {...media} />
       </main>
 
       <div className={styles.lockRow}>
@@ -265,6 +207,67 @@ function ActiveRound({
         <p className={styles.submitError} role="alert">
           {submitError}. choose again.
         </p>
+      )}
+    </div>
+  );
+}
+
+function LeadIn({ round, totalRounds }: { round: ActiveRound; totalRounds: number }) {
+  const secondsLeft = useSecondsLeft(round.startedAt);
+
+  return (
+    <div className={styles.finalIntro}>
+      <div className={styles.finalIntroContent} role="status">
+        <div className={styles.finalLabel}>
+          {round.isFinal ? "final round" : `round ${round.roundNumber} of ${totalRounds}`}
+        </div>
+        <div className={round.isFinal ? styles.finalMultiplier : styles.leadInCount}>
+          {round.isFinal ? "2×" : Math.max(1, secondsLeft)}
+        </div>
+        <p className={styles.finalSubtext}>
+          {round.isFinal ? "everything counts double. including mistakes." : "get ready"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Media({
+  mode,
+  source,
+  failed,
+  retry,
+}: {
+  mode: PublicRoom["mode"];
+  source?: string;
+  failed: boolean;
+  retry: () => void;
+}) {
+  if (mode === "music" && source) return <AudioPlayer src={source} />;
+
+  const cardClass =
+    mode === "actor" ? styles.actorCard : mode === "flag" ? styles.flagCard : styles.logoCard;
+  const imageClass =
+    mode === "actor" ? styles.actorImg : mode === "flag" ? styles.flagImg : styles.logoImg;
+
+  return (
+    <div className={mode === "music" ? styles.mediaStatusCard : cardClass}>
+      {source && mode !== "music" ? (
+        <Image
+          src={source}
+          alt=""
+          className={imageClass}
+          width={mode === "actor" ? 421 : 480}
+          height={mode === "actor" ? 632 : 320}
+          draggable={false}
+          unoptimized
+        />
+      ) : failed ? (
+        <button type="button" className={styles.mediaRetry} onClick={retry}>
+          media did not load. tap to retry
+        </button>
+      ) : (
+        <LoadingDots label="loading" />
       )}
     </div>
   );

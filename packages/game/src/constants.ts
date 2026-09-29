@@ -13,3 +13,6 @@ export const ROOM_STATES = [
 ] as const;
 export const ROUND_STATES = ["pending", "active", "revealing", "complete"] as const;
 export const PRESENCE_STATUSES = ["connected", "disconnected"] as const;
+export const ROUND_LEAD_IN_MS = 2_000;
+export const ANSWER_GRACE_MS = 750;
+export const MEDIA_MAX_BYTES = 4 * 1024 * 1024;

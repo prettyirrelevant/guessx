@@ -5,6 +5,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
+    "./media": "./src/media-loader.ts",
     "./react": "./src/room-connection.tsx"
   },
   "scripts": {

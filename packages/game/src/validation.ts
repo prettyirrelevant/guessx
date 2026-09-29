@@ -22,14 +22,40 @@ export function isRoomCode(value: unknown): value is string {
   return typeof value === "string" && ROOM_CODE_PATTERN.test(value);
 }
 
+const HIDDEN_CHARACTER_RANGES = [
+  [0x0000, 0x001f],
+  [0x007f, 0x009f],
+  [0x00ad, 0x00ad],
+  [0x200b, 0x200c],
+  [0x200e, 0x200f],
+  [0x2028, 0x202e],
+  [0x2060, 0x2064],
+  [0x2066, 0x2069],
+  [0xfeff, 0xfeff],
+];
+
+function hasHiddenCharacters(value: string): boolean {
+  for (const character of value) {
+    const code = character.codePointAt(0) ?? 0;
+    if (HIDDEN_CHARACTER_RANGES.some(([start, end]) => code >= start && code <= end)) return true;
+  }
+  return false;
+}
+
+export function normalizeDisplayName(displayName: string): string {
+  return displayName.trim().replace(/\s+/g, " ");
+}
+
 export function isValidProfile(displayName: unknown, avatar: unknown): boolean {
+  if (typeof displayName !== "string" || typeof avatar !== "string") return false;
+  const name = normalizeDisplayName(displayName);
   return (
-    typeof displayName === "string" &&
-    typeof avatar === "string" &&
-    displayName.trim().length >= 1 &&
+    name.length >= 1 &&
     displayName.length <= 20 &&
+    !hasHiddenCharacters(displayName) &&
     avatar.length >= 1 &&
-    avatar.length <= 100
+    avatar.length <= 100 &&
+    !hasHiddenCharacters(avatar)
   );
 }
 
