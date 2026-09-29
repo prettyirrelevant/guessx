@@ -41,5 +41,6 @@ next-env.d.ts
 
 # secrets
 .env*
+.dev.vars
 !.env.example
 !.dev.vars.example

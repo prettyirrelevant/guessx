@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Check, X } from "lucide-react";
-import { useInterval, useTimeout } from "@mantine/hooks";
+import { useTimeout } from "@mantine/hooks";
 import type { PublicAnswer, PublicPlayer, PublicRoom, RevealedRound } from "@guessx/game";
 
 import { getAvatarUrl } from "@/lib/session";
-import { useRoomConnection } from "@/lib/room-connection";
+import { useRoomConnection, useSecondsLeft } from "@/lib/room-connection";
 
 import styles from "./reveal-screen.module.css";
 
@@ -23,16 +23,11 @@ export function RevealScreen({
   currentPlayer: PublicPlayer;
 }) {
   const { snapshot, command } = useRoomConnection();
-  const [countdown, setCountdown] = useState(10);
+  const countdown = useSecondsLeft(round.state === "revealing" ? round.revealEndsAt : undefined);
   const [showSkip, setShowSkip] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [skipError, setSkipError] = useState("");
   const isHost = room.isHost;
-
-  const { start: startCountdown, stop: stopCountdown } = useInterval(
-    () => setCountdown((prev) => (prev > 0 ? prev - 1 : 0)),
-    1000,
-  );
 
   const { start: startSkipDelay, clear: clearSkipDelay } = useTimeout(
     () => setShowSkip(true),
@@ -41,29 +36,15 @@ export function RevealScreen({
 
   useEffect(() => {
     if (round.state !== "revealing") {
-      stopCountdown();
       setShowSkip(false);
       setSkipping(false);
       setSkipError("");
       clearSkipDelay();
       return;
     }
-    setCountdown(10);
-    startCountdown();
     if (isHost) startSkipDelay();
-    return () => {
-      stopCountdown();
-      clearSkipDelay();
-    };
-  }, [
-    round._id,
-    round.state,
-    isHost,
-    startCountdown,
-    stopCountdown,
-    startSkipDelay,
-    clearSkipDelay,
-  ]);
+    return clearSkipDelay;
+  }, [round._id, round.state, isHost, startSkipDelay, clearSkipDelay]);
 
   const fullAnswers = (snapshot?.answers ?? []).filter(
     (answer): answer is Extract<PublicAnswer, { selectedOption: string }> =>

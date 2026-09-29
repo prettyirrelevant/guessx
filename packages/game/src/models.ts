@@ -31,6 +31,7 @@ export type RoundContent = {
   correctAnswer: string;
   options: string[];
   mediaUrl: string;
+  mediaSourceId?: string;
   mediaTitle?: string;
   mediaArtist?: string;
   attribution?: string;
@@ -65,9 +66,15 @@ export type PublicPlayer = {
   isHost: boolean;
 };
 
-type PublicRoundBase = Pick<RoundContent, "roundNumber" | "options" | "mediaUrl" | "isFinal"> & {
+export type RoundMedia = {
+  path: string;
+  key: string;
+};
+
+type PublicRoundBase = Pick<RoundContent, "roundNumber" | "options" | "isFinal"> & {
   _id: string;
   roomId: string;
+  media: RoundMedia;
   startedAt?: number;
   endsAt?: number;
 };

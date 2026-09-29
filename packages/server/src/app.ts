@@ -5,6 +5,7 @@ import { Hono, type Context, type Next } from "hono";
 import { isRoomCode, isValidCreateRoomInput, isValidJoinRoomInput } from "@guessx/game";
 
 import { AUTHENTICATED_USER_HEADER, generateRoomCode, GuessRoom } from "./room";
+import { sealMedia } from "./media";
 import type { Env } from "./env";
 import { isValidContentConfig, prepareContent, searchArtistsFromDeezer } from "./content";
 import { issueSession, issueSocketTicket, verifySession, verifySocketTicket } from "./auth";
@@ -67,7 +68,7 @@ async function requireSession(context: Context<HonoEnv>, next: Next) {
 
 app.use("*", async (context, next) => {
   await next();
-  context.header("Cache-Control", "no-store");
+  if (!context.res.headers.has("Cache-Control")) context.header("Cache-Control", "no-store");
 });
 
 app.get("/health", (context) => context.json({ ok: true }));
@@ -130,12 +131,12 @@ const api = new Hono<HonoEnv>()
     try {
       rounds = await prepareContent(preparation.config, context.env.TMDB_API_READ_ACCESS_TOKEN);
     } catch (error) {
-      await stub.cancelPreparation(userId, preparation.claimId);
+      await stub.cancelPreparation(preparation.claimId);
       throw error;
     }
 
-    const result = await stub.completePreparation(userId, preparation.claimId, rounds);
-    if (result.error) await stub.cancelPreparation(userId, preparation.claimId);
+    const result = await stub.completePreparation(preparation.claimId, rounds);
+    if (result.error) await stub.cancelPreparation(preparation.claimId);
     return context.json(result, result.error ? 400 : 200);
   })
   .post("/rooms/:roomCode/socket-ticket", async (context) => {
@@ -149,6 +150,30 @@ const api = new Hono<HonoEnv>()
     const ticket = await issueSocketTicket(userId, roomCode, context.env.AUTH_SIGNING_SECRET);
     return context.json({ ticket });
   });
+
+app.get("/api/media/:roomCode/:roundId", async (context) => {
+  const { roomCode, roundId } = context.req.param();
+  if (!isRoomCode(roomCode) || !/^[0-9a-f-]{36}$/.test(roundId)) {
+    return context.json({ error: "media not found" }, 404);
+  }
+
+  const cache = await caches.open("media");
+  const cached = await cache.match(context.req.url);
+  if (cached) return new Response(cached.body, cached);
+
+  const stub = await getServerByName<Env, GuessRoom>(context.env.GUESS_ROOM, roomCode);
+  const source = await stub.mediaSource(roundId);
+  if (!source) return context.json({ error: "media not found" }, 404);
+
+  const response = new Response(await sealMedia(source), {
+    headers: {
+      "Cache-Control": "public, max-age=86400, immutable",
+      "Content-Type": "application/octet-stream",
+    },
+  });
+  context.executionCtx.waitUntil(cache.put(context.req.url, response.clone()));
+  return response;
+});
 
 app.route("/api", api);
 

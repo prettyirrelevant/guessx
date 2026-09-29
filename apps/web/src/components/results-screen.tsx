@@ -9,6 +9,8 @@ import type { PublicRoom } from "@guessx/game";
 import { getAvatarUrl, useSession } from "@/lib/session";
 import { useRoomConnection } from "@/lib/room-connection";
 
+import { LoadingDots } from "./loading-dots";
+
 import styles from "./results-screen.module.css";
 
 export function ResultsScreen({ room }: { room: PublicRoom }) {
@@ -120,11 +122,7 @@ export function ResultsScreen({ room }: { room: PublicRoom }) {
             </Link>
           ) : (
             <div className={styles.waitingGroup} role="status">
-              <div className={styles.waitingDots}>
-                <span className={styles.dot} />
-                <span className={styles.dot} />
-                <span className={styles.dot} />
-              </div>
+              <LoadingDots />
               <span className={styles.waitingMessage}>waiting for host to start a new game</span>
             </div>
           )}

@@ -27,6 +27,7 @@ export function PreparingScreen({ room }: { room: PublicRoom }) {
       setFailed(false);
       await prepareGame(room.roomId);
     } catch (cause) {
+      if (cause instanceof Error && cause.message === "room preparation already started") return;
       setFailed(true);
       toast.error(cause instanceof Error ? cause.message : "Failed to set up the room. Try again");
       haptics.error();

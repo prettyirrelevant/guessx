@@ -1,6 +1,11 @@
 import {
+  ANSWER_GRACE_MS,
+  encodeBase64Url,
   isValidCreateRoomInput,
   isValidProfile,
+  MEDIA_KEY_BYTES,
+  normalizeDisplayName,
+  ROUND_LEAD_IN_MS,
   type CommandResult,
   type CreateRoomInput,
   type JoinRoomInput,
@@ -35,6 +40,7 @@ type StoredPlayer = {
 
 type StoredRound = RoundContent & {
   id: string;
+  mediaKey: string;
   state: "pending" | "active" | "revealing" | "complete";
   startedAt?: number;
   endsAt?: number;
@@ -86,10 +92,15 @@ function isHttpsUrl(value: string): boolean {
   }
 }
 
-function isAllowedMediaUrl(value: string): boolean {
-  const isInlineLogo =
-    value.length <= 32_768 && value.startsWith("data:image/svg+xml;charset=utf-8,%3Csvg%20");
-  return isInlineLogo || isHttpsUrl(value);
+const MEDIA_HOSTS = [/^flagcdn\.com$/, /^image\.tmdb\.org$/, /^[a-z0-9-]+\.dzcdn\.net$/];
+
+export function isAllowedMediaUrl(value: string): boolean {
+  if (value.length <= 32_768 && value.startsWith("data:image/svg+xml;charset=utf-8,%3Csvg%20")) {
+    return true;
+  }
+  if (!isHttpsUrl(value)) return false;
+  const { hostname } = new URL(value);
+  return MEDIA_HOSTS.some((host) => host.test(hostname));
 }
 
 function areValidRounds(rounds: RoundContent[], game: StoredGame): boolean {
@@ -101,6 +112,7 @@ function areValidRounds(rounds: RoundContent[], game: StoredGame): boolean {
     if (!round.options.includes(round.correctAnswer)) return false;
     if (!round.options.every((option) => option.length > 0 && option.length <= 200)) return false;
     if (!isAllowedMediaUrl(round.mediaUrl)) return false;
+    if (round.mediaSourceId && !/^\d{1,20}$/.test(round.mediaSourceId)) return false;
     if (round.attributionUrl && !isHttpsUrl(round.attributionUrl)) return false;
     if (round.licenseUrl && !isHttpsUrl(round.licenseUrl)) return false;
     if (round.attribution && round.attribution.length > 500) return false;
@@ -136,8 +148,9 @@ function scoreRound(game: StoredGame, round: StoredRound, now: number): void {
   if (round.state !== "active") return;
 
   const answers = game.answers.filter((answer) => answer.roundId === round.id);
-  const playerOrder = game.players.toSorted((a, b) => b.totalScore - a.totalScore);
-  const leaderboardPosition = new Map(playerOrder.map((player, index) => [player.id, index]));
+  const scores = [...new Set(game.players.map((player) => player.totalScore))].toSorted(
+    (a, b) => b - a,
+  );
   const correctAnswers = answers
     .filter((answer) => answer.correct)
     .toSorted((a, b) => a.submittedAt - b.submittedAt);
@@ -151,9 +164,10 @@ function scoreRound(game: StoredGame, round: StoredRound, now: number): void {
     const streak = player.streak + 1;
     if (streak >= STREAK_THRESHOLD) points += STREAK_BONUS;
 
-    const position = leaderboardPosition.get(player.id) ?? game.players.length;
-    if (position === 0) points = Math.round(points * 0.8);
-    else if (position === 1) points = Math.round(points * 0.9);
+    const rank = scores.indexOf(player.totalScore);
+    const isAhead = player.totalScore > 0 && player.totalScore > scores[scores.length - 1];
+    if (isAhead && rank === 0) points = Math.round(points * 0.8);
+    else if (isAhead && rank === 1) points = Math.round(points * 0.9);
     if (round.isFinal) points *= 2;
 
     answer.pointsAwarded = points;
@@ -197,6 +211,15 @@ function scoreIfReady(game: StoredGame, now: number): void {
   if (everyoneAnswered || connectedPlayersAnswered) scoreRound(game, round, now);
 }
 
+function activateRound(game: StoredGame, round: StoredRound, now: number): void {
+  round.state = "active";
+  round.startedAt = now + ROUND_LEAD_IN_MS;
+  round.endsAt = round.startedAt + game.roundDuration;
+  game.currentRound = round.roundNumber;
+  game.lastActivityAt = now;
+  game.phaseDeadline = round.endsAt + ANSWER_GRACE_MS;
+}
+
 function advanceRound(game: StoredGame, round: StoredRound, now: number): void {
   if (round.state !== "revealing") return;
   round.state = "complete";
@@ -212,13 +235,11 @@ function advanceRound(game: StoredGame, round: StoredRound, now: number): void {
     return;
   }
 
-  const introDuration = nextRound.isFinal ? 3_000 : 0;
-  nextRound.state = "active";
-  nextRound.startedAt = now + introDuration;
-  nextRound.endsAt = nextRound.startedAt + game.roundDuration;
-  game.currentRound = nextRound.roundNumber;
-  game.lastActivityAt = now;
-  game.phaseDeadline = nextRound.endsAt;
+  activateRound(game, nextRound, now);
+}
+
+function mediaPath(roomCode: string, roundId: string): string {
+  return `/api/media/${roomCode}/${roundId}`;
 }
 
 function toPublicRound(game: StoredGame): PublicRound | null {
@@ -230,7 +251,7 @@ function toPublicRound(game: StoredGame): PublicRound | null {
     roomId: game.roomCode,
     roundNumber: round.roundNumber,
     options: round.options,
-    mediaUrl: round.mediaUrl,
+    media: { path: mediaPath(game.roomCode, round.id), key: round.mediaKey },
     isFinal: round.isFinal,
     startedAt: round.startedAt,
     endsAt: round.endsAt,
@@ -282,7 +303,7 @@ export function createGame(
       {
         id: crypto.randomUUID(),
         userId: hostId,
-        displayName: input.hostName,
+        displayName: normalizeDisplayName(input.hostName),
         avatar: input.hostAvatar,
         totalScore: 0,
         streak: 0,
@@ -308,7 +329,7 @@ export function joinGame(game: StoredGame, userId: string, input: JoinRoomInput)
   const now = Date.now();
   const existing = game.players.find((player) => player.userId === userId);
   if (existing) {
-    existing.displayName = input.displayName;
+    existing.displayName = normalizeDisplayName(input.displayName);
     existing.avatar = input.avatar;
     touchWaitingRoom(game, now);
     return { success: true, roomCode: game.roomCode };
@@ -321,7 +342,7 @@ export function joinGame(game: StoredGame, userId: string, input: JoinRoomInput)
   game.players.push({
     id: crypto.randomUUID(),
     userId,
-    displayName: input.displayName,
+    displayName: normalizeDisplayName(input.displayName),
     avatar: input.avatar,
     totalScore: 0,
     streak: 0,
@@ -366,14 +387,8 @@ export function beginPreparation(game: StoredGame, userId: string) {
 }
 
 /** Releases a failed content-generation claim so the host can retry. */
-export function releasePreparationClaim(
-  game: StoredGame,
-  userId: string,
-  claimId: string,
-): CommandResult {
-  if (game.hostId !== userId || game.preparationClaimId !== claimId) {
-    return { error: "invalid preparation claim" };
-  }
+export function releasePreparationClaim(game: StoredGame, claimId: string): CommandResult {
+  if (game.preparationClaimId !== claimId) return { error: "invalid preparation claim" };
   game.preparationClaimId = undefined;
   game.phaseDeadline = Date.now() + PREPARATION_TIMEOUT_MS;
   return { success: true };
@@ -382,11 +397,9 @@ export function releasePreparationClaim(
 /** Validates generated content and transitions a prepared room into the waiting state. */
 export function completePreparation(
   game: StoredGame,
-  userId: string,
   claimId: string,
   rounds: RoundContent[],
 ): CommandResult {
-  if (game.hostId !== userId) return { error: "only the host can prepare" };
   if (game.state !== "preparing") return { error: "room not preparing" };
   if (game.preparationClaimId !== claimId) return { error: "invalid preparation claim" };
   if (!areValidRounds(rounds, game)) return { error: "invalid rounds" };
@@ -395,6 +408,7 @@ export function completePreparation(
   game.rounds = rounds.map((round) => ({
     ...round,
     id: crypto.randomUUID(),
+    mediaKey: encodeBase64Url(crypto.getRandomValues(new Uint8Array(MEDIA_KEY_BYTES))),
     state: "pending",
   }));
   game.state = "waiting";
@@ -415,15 +429,8 @@ export function startGame(game: StoredGame, userId: string): CommandResult {
   const firstRound = game.rounds.find((round) => round.roundNumber === 1);
   if (!firstRound) return { error: "first round not found" };
 
-  const now = Date.now();
-  const introDuration = firstRound.isFinal ? 3_000 : 0;
-  firstRound.state = "active";
-  firstRound.startedAt = now + introDuration;
-  firstRound.endsAt = firstRound.startedAt + game.roundDuration;
   game.state = "in_progress";
-  game.currentRound = 1;
-  game.lastActivityAt = now;
-  game.phaseDeadline = firstRound.endsAt;
+  activateRound(game, firstRound, Date.now());
   return { success: true };
 }
 
@@ -448,7 +455,8 @@ export function submitAnswer(
   if (!round || round.state !== "active") return { error: "round is not active" };
 
   const now = Date.now();
-  if (round.endsAt && now > round.endsAt) return { error: "time's up" };
+  if (round.startedAt && now < round.startedAt) return { error: "round has not started" };
+  if (round.endsAt && now > round.endsAt + ANSWER_GRACE_MS) return { error: "time's up" };
   if (!selectedOption || !round.options.includes(selectedOption)) {
     return { error: "invalid option" };
   }
@@ -517,6 +525,9 @@ export function processAlarm(game: StoredGame, now = Date.now()): "updated" | "d
 
     const player = game.players.find((entry) => entry.id === playerId);
     if (!player || player.status !== "disconnected") continue;
+    if (game.state === "waiting" || game.state === "preparing") {
+      game.players = game.players.filter((entry) => entry.id !== player.id);
+    }
     const connectedPlayers = game.players.filter((entry) => entry.status === "connected");
     if (connectedPlayers.length === 0 && game.state !== "finished" && game.state !== "abandoned") {
       retainClosedRoom(game, now);
@@ -566,7 +577,7 @@ export function replayInput(
  * Builds a player-specific public view.
  * Correct answers and answer details remain hidden until the reveal phase.
  */
-export function snapshotFor(game: StoredGame, userId: string): RoomSnapshot {
+export function snapshotFor(game: StoredGame, userId: string, now = Date.now()): RoomSnapshot {
   const room: PublicRoom = {
     _id: game.roomCode,
     roomId: game.roomCode,
@@ -628,5 +639,16 @@ export function snapshotFor(game: StoredGame, userId: string): RoomSnapshot {
     answers,
     leaderboard: players.toSorted((a, b) => b.totalScore - a.totalScore),
     nextRoomCode: game.nextRoomId ?? null,
+    serverTime: now,
+    prefetch: game.rounds
+      .filter((entry) => entry.state === "pending" || entry.state === "active")
+      .toSorted((a, b) => a.roundNumber - b.roundNumber)
+      .map((entry) => mediaPath(game.roomCode, entry.id)),
   };
+}
+
+export function mediaSource(game: StoredGame, roundId: string) {
+  const round = game.rounds.find((entry) => entry.id === roundId);
+  if (!round) return null;
+  return { url: round.mediaUrl, sourceId: round.mediaSourceId, key: round.mediaKey };
 }

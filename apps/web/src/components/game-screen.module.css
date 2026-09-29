@@ -351,3 +351,45 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.leadInCount {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-display-xl);
+  letter-spacing: var(--tracking-display);
+  color: var(--accent);
+  line-height: var(--lh-tight);
+  margin-bottom: var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.mediaStatusCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 96px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.mediaRetry {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.mediaRetry {
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.mediaRetry:hover {
+  color: var(--text);
+}

@@ -1,14 +1,17 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { getServerByName } from "partyserver";
 import { env } from "cloudflare:workers";
-import { evictDurableObject, reset } from "cloudflare:test";
-import type {
-  CommandArgs,
+import { evictDurableObject, reset, SELF } from "cloudflare:test";
+import {
+  decodeMediaKey,
+  MEDIA_IV_BYTES,
+  unpackMediaFrame,
+  type CommandArgs,
   CommandName,
-  CreateRoomInput,
-  RoomSnapshot,
-  RoundContent,
-  ServerMessage,
+  type CreateRoomInput,
+  type RoomSnapshot,
+  type RoundContent,
+  type ServerMessage,
 } from "@guessx/game";
 
 import { AUTHENTICATED_USER_HEADER, GuessRoom } from "../src/room";
@@ -28,7 +31,7 @@ const ROUND: RoundContent = {
   roundNumber: 1,
   correctAnswer: "Correct",
   options: ["Correct", "Wrong A", "Wrong B", "Wrong C"],
-  mediaUrl: "https://example.com/media.jpg",
+  mediaUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent('<svg viewBox="0 0 1 1"/>')}`,
   isFinal: true,
 };
 
@@ -65,8 +68,9 @@ async function connect(stub: DurableObjectStub<GuessRoom>, identity: typeof HOST
   if (!socket) throw new Error("WebSocket upgrade did not return a socket");
   socket.accept();
 
-  await waitForMessage(socket, (message) => message.type === "snapshot");
-  return socket;
+  const message = await waitForMessage(socket, (current) => current.type === "snapshot");
+  if (message.type !== "snapshot") throw new Error("Expected a snapshot");
+  return { socket, snapshot: message.snapshot };
 }
 
 function waitForMessage(
@@ -137,7 +141,7 @@ describe("GuessRoom", () => {
     expect(await stub.beginPreparation(HOST.userId)).toEqual({
       error: "room preparation already started",
     });
-    await stub.cancelPreparation(HOST.userId, first.claimId);
+    await stub.cancelPreparation(first.claimId);
     expect(await stub.beginPreparation(HOST.userId)).not.toHaveProperty("error");
   });
 
@@ -152,12 +156,12 @@ describe("GuessRoom", () => {
     ).toMatchObject({ success: true });
     const preparation = await stub.beginPreparation(HOST.userId);
     if ("error" in preparation) throw new Error(preparation.error);
-    expect(await stub.completePreparation(HOST.userId, preparation.claimId, [ROUND])).toEqual({
+    expect(await stub.completePreparation(preparation.claimId, [ROUND])).toEqual({
       success: true,
     });
 
-    const hostSocket = await connect(stub, HOST);
-    const guestSocket = await connect(stub, GUEST);
+    const { socket: hostSocket } = await connect(stub, HOST);
+    const { socket: guestSocket } = await connect(stub, GUEST);
     const active = await command(
       hostSocket,
       "start",
@@ -169,6 +173,15 @@ describe("GuessRoom", () => {
 
     const hostPlayer = active.players.find((player) => player.isCurrent);
     if (!hostPlayer || !active.round) throw new Error("Missing host or active round");
+    expect(
+      await rawCommand(hostSocket, "submitAnswer", {
+        roundId: active.round._id,
+        selectedOption: "Correct",
+      }),
+    ).toEqual({ error: "round has not started" });
+    await new Promise((resolve) =>
+      setTimeout(resolve, (active.round?.startedAt ?? 0) - Date.now()),
+    );
     const afterHostAnswer = await command(
       hostSocket,
       "submitAnswer",
@@ -196,15 +209,56 @@ describe("GuessRoom", () => {
     expect(revealed.round?.state).toBe("revealing");
     expect(revealed.round).toHaveProperty("revealEndsAt");
     expect(revealed.round).toHaveProperty("correctAnswer", "Correct");
-    expect(revealed.leaderboard.map((player) => player.totalScore)).toEqual([16, -2]);
+    expect(revealed.leaderboard.map((player) => player.totalScore)).toEqual([20, -2]);
 
     hostSocket.close();
     guestSocket.close();
-  });
+  }, 10_000);
 
+  it("serves round media only as ciphertext that the round key opens", async () => {
+    const stub = await createRoom("AB-1004");
+    await stub.join(GUEST.userId, {
+      roomCode: "AB-1004",
+      displayName: GUEST.displayName,
+      avatar: GUEST.avatar,
+    });
+    const preparation = await stub.beginPreparation(HOST.userId);
+    if ("error" in preparation) throw new Error(preparation.error);
+    await stub.completePreparation(preparation.claimId, [ROUND]);
+    const { socket: hostSocket, snapshot: lobby } = await connect(stub, HOST);
+    const { socket: guestSocket } = await connect(stub, GUEST);
+
+    expect(lobby.round).toBeNull();
+    expect(lobby.prefetch).toHaveLength(1);
+    const response = await SELF.fetch(`https://worker.test${lobby.prefetch[0]}`);
+    expect(response.status).toBe(200);
+    const blob = new Uint8Array(await response.arrayBuffer());
+    expect(new TextDecoder().decode(blob)).not.toContain("svg");
+
+    const active = await command(hostSocket, "start", undefined, (current) => !!current.round);
+    const keyBytes = decodeMediaKey(active.round?.media.key ?? "");
+    if (!keyBytes) throw new Error("Missing media key");
+    expect(active.round?.media.path).toBe(lobby.prefetch[0]);
+    const key = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, ["decrypt"]);
+    const frame = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: blob.subarray(0, MEDIA_IV_BYTES) },
+      key,
+      blob.subarray(MEDIA_IV_BYTES),
+    );
+    const media = unpackMediaFrame(new Uint8Array(frame));
+    expect(media?.contentType).toBe("image/svg+xml");
+    expect(new TextDecoder().decode(media?.bytes)).toBe('<svg viewBox="0 0 1 1"/>');
+
+    const missing = await SELF.fetch(
+      "https://worker.test/api/media/AB-1004/00000000-0000-0000-0000-000000000000",
+    );
+    expect(missing.status).toBe(404);
+    hostSocket.close();
+    guestSocket.close();
+  });
   it("retains connection identity across hibernation", async () => {
     const stub = await createRoom("AB-1002");
-    const socket = await connect(stub, HOST);
+    const { socket } = await connect(stub, HOST);
 
     await evictDurableObject(stub);
     const snapshot = await command(
@@ -217,3 +271,14 @@ describe("GuessRoom", () => {
     socket.close();
   });
 });
+
+async function rawCommand(socket: WebSocket, name: CommandName, args?: CommandArgs) {
+  const requestId = crypto.randomUUID();
+  const result = waitForMessage(
+    socket,
+    (message) => message.type === "commandResult" && message.requestId === requestId,
+  );
+  socket.send(JSON.stringify({ type: "command", requestId, command: name, args }));
+  const message = await result;
+  return message.type === "commandResult" ? message.result : null;
+}

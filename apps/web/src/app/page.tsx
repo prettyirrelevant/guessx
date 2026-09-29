@@ -21,7 +21,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { ACTOR_CATEGORIES, CONTINENTS, POPULAR_ARTISTS } from "@guessx/game";
 
 import { getAvatarUrl, useSession } from "@/lib/session";
-import { createRoom, joinRoom, searchArtists } from "@/lib/actions";
+import { createRoom, joinRoom, searchArtists } from "@/lib/api";
 import { ProfileSetup } from "@/components/profile-setup";
 import { ModalDialog } from "@/components/modal-dialog";
 
@@ -297,8 +297,8 @@ function CreateRoomModal({
       });
 
       router.push(`/room/${roomCode}`);
-    } catch {
-      setError("something went wrong. try again.");
+    } catch (cause) {
+      setError(cause instanceof Error ? `${cause.message}. try again.` : "something went wrong.");
       setLoading(false);
     }
   };
@@ -656,8 +656,8 @@ function JoinRoomModal({
       });
 
       router.push(`/room/${roomCode}`);
-    } catch {
-      setError("something went wrong. try again.");
+    } catch (cause) {
+      setError(cause instanceof Error ? `${cause.message}. try again.` : "something went wrong.");
       setLoading(false);
     }
   };

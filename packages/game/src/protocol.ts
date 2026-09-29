@@ -7,6 +7,8 @@ export type RoomSnapshot = {
   answers: PublicAnswer[];
   leaderboard: PublicPlayer[];
   nextRoomCode: string | null;
+  serverTime: number;
+  prefetch: string[];
 };
 
 export const COMMAND_NAMES = ["start", "close", "submitAnswer", "skipReveal", "playAgain"] as const;

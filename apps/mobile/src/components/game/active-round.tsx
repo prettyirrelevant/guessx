@@ -8,19 +8,22 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { ActivityIndicator, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { Pressable, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Image } from "expo-image";
-import { useRoomConnection } from "@guessx/server/react";
+import { useRoomConnection, useSecondsLeft } from "@guessx/server/react";
+import { useRoundMedia } from "@guessx/server/media";
 import type { ActiveRound, PublicPlayer, PublicRoom } from "@guessx/game";
 
 import { toast } from "@/lib/toast";
+import { mediaLoader } from "@/lib/media";
 import { haptics } from "@/lib/haptics";
 import { isAnswerLocked } from "@/lib/game-state";
 import { Avatar } from "@/components/ui";
 import { TimerBar } from "@/components/timer-bar";
 import { ExitButton, GameScroll, SCREEN_ENTER } from "@/components/game/shared";
 import { RevealScreen } from "@/components/game/reveal";
+import { LoadingDots } from "@/components/fx/loading-dots";
 import { BrandLoader } from "@/components/fx/brand-loader";
 import { AnswerOption } from "@/components/fx/answer-option";
 import { AudioPlayer } from "@/components/audio-player";
@@ -61,23 +64,22 @@ function Active({
   players: PublicPlayer[];
   currentPlayer: PublicPlayer;
 }) {
-  const { snapshot, command } = useRoomConnection();
+  const { snapshot, command, serverNow } = useRoomConnection();
+  const media = useRoundMedia(mediaLoader, round.media);
   const [selected, setSelected] = useState<string | null>(null);
   const locked = useRef(false);
-  const [showIntro, setShowIntro] = useState(
-    () => round.isFinal && Date.now() < (round.startedAt ?? 0),
-  );
+  const [started, setStarted] = useState(() => serverNow() >= (round.startedAt ?? 0));
 
   useEffect(() => {
     locked.current = false;
     setSelected(null);
-    const remaining = round.isFinal ? Math.max(0, (round.startedAt ?? 0) - Date.now()) : 0;
-    setShowIntro(remaining > 0);
-    if (remaining === 0) return;
-    haptics.impact();
-    const timeout = setTimeout(() => setShowIntro(false), remaining);
+    const remaining = (round.startedAt ?? 0) - serverNow();
+    setStarted(remaining <= 0);
+    if (remaining <= 0) return;
+    if (round.isFinal) haptics.impact();
+    const timeout = setTimeout(() => setStarted(true), remaining);
     return () => clearTimeout(timeout);
-  }, [round._id, round.isFinal, round.startedAt]);
+  }, [round._id, round.isFinal, round.startedAt, serverNow]);
 
   const answeredIds = useMemo(
     () => new Set((snapshot?.answers ?? []).filter((a) => "playerId" in a).map((a) => a.playerId)),
@@ -85,30 +87,21 @@ function Active({
   );
 
   const answer = async (option: string) => {
-    if (locked.current || round.state !== "active") return;
+    if (locked.current || !started) return;
     locked.current = true;
     setSelected(option);
     haptics.selection();
-    try {
-      const result = await command("submitAnswer", { roundId: round._id, selectedOption: option });
-      if (!result.error) return;
-      locked.current = false;
-      setSelected(null);
-      toast.error(`${result.error}. Choose again.`);
-      haptics.error();
-    } catch (cause) {
-      locked.current = false;
-      setSelected(null);
-      toast.error(
-        cause instanceof Error
-          ? `${cause.message}. Choose again.`
-          : "Answer was not submitted. Choose again.",
-      );
-      haptics.error();
-    }
+    const result = await command("submitAnswer", { roundId: round._id, selectedOption: option });
+    if (!result.error || result.error === "already answered") return;
+    locked.current = false;
+    setSelected(null);
+    toast.error(`${result.error}. Choose again.`);
+    haptics.error();
   };
 
-  if (showIntro) return <FinalIntro />;
+  if (!started) {
+    return <LeadIn round={round} totalRounds={room.totalRounds} />;
+  }
 
   const isLocked = isAnswerLocked(selected, answeredIds, currentPlayer._id);
 
@@ -136,7 +129,7 @@ function Active({
 
       <View style={styles.stage}>
         <Text style={styles.prompt}>{PROMPTS[room.mode]}</Text>
-        <Media mode={room.mode} url={round.mediaUrl} />
+        <Media mode={room.mode} {...media} />
       </View>
 
       <View style={styles.lockRow}>
@@ -183,72 +176,95 @@ function Active({
   );
 }
 
-function Media({ mode, url }: { mode: PublicRoom["mode"]; url: string }) {
-  if (mode === "music") return <AudioPlayer source={url} />;
-  if (mode === "actor") {
-    return <ImageMedia style={styles.actorCard} url={url} />;
-  }
-  if (mode === "flag") {
-    return <ImageMedia style={styles.flagCard} url={url} />;
-  }
-  return <ImageMedia style={styles.logoCard} url={url} />;
+type MediaState = ReturnType<typeof useRoundMedia>;
+
+function Media({ mode, source, failed, retry }: MediaState & { mode: PublicRoom["mode"] }) {
+  if (mode === "music" && source) return <AudioPlayer source={source} />;
+  const style =
+    mode === "music"
+      ? styles.audioCard
+      : mode === "actor"
+        ? styles.actorCard
+        : mode === "flag"
+          ? styles.flagCard
+          : styles.logoCard;
+  return <ImageMedia failed={failed} retry={retry} source={source} style={style} />;
 }
 
-function ImageMedia({ url, style }: { url: string; style: StyleProp<ViewStyle> }) {
+function ImageMedia({
+  source,
+  failed,
+  retry,
+  style,
+}: MediaState & { style: StyleProp<ViewStyle> }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
-  useEffect(() => setStatus("loading"), [url]);
+  useEffect(() => setStatus("loading"), [source]);
+  const shownStatus = failed ? "error" : status;
 
   return (
     <View style={style}>
-      <Image
-        cachePolicy="memory-disk"
-        contentFit="contain"
-        onError={() => setStatus("error")}
-        onLoad={() => setStatus("ready")}
-        source={url}
-        style={styles.fill}
-        transition={160}
-      />
-      {status === "ready" ? null : (
-        <View accessibilityLiveRegion="polite" style={styles.mediaStatus}>
-          {status === "loading" ? <ActivityIndicator color="#c8f135" /> : null}
-          <Text
-            accessibilityRole={status === "error" ? "alert" : undefined}
-            style={styles.mediaText}
-          >
-            {status === "error" ? "Image could not be loaded" : "Loading image…"}
-          </Text>
-        </View>
+      {source ? (
+        <Image
+          contentFit="contain"
+          onError={() => setStatus("error")}
+          onLoad={() => setStatus("ready")}
+          source={source}
+          style={styles.fill}
+          transition={160}
+        />
+      ) : null}
+      {shownStatus === "ready" ? null : (
+        <Pressable
+          accessibilityRole={shownStatus === "error" ? "button" : undefined}
+          disabled={shownStatus !== "error"}
+          onPress={retry}
+          style={styles.mediaStatus}
+        >
+          {shownStatus === "loading" ? (
+            <LoadingDots />
+          ) : (
+            <Text accessibilityRole="alert" style={styles.mediaText}>
+              Media did not load. Tap to retry
+            </Text>
+          )}
+        </Pressable>
       )}
     </View>
   );
 }
 
-function FinalIntro() {
+function LeadIn({ round, totalRounds }: { round: ActiveRound; totalRounds: number }) {
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const pulse = useSharedValue(1);
+  const secondsLeft = useSecondsLeft(round.startedAt);
 
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || !round.isFinal) return;
     pulse.value = withRepeat(
       withSequence(withTiming(1.12, { duration: 700 }), withTiming(1, { duration: 700 })),
       -1,
     );
-  }, [reduced, pulse]);
+  }, [reduced, pulse, round.isFinal]);
 
   const multStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
   return (
     <View style={[styles.introRoot, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <Animated.View entering={SCREEN_ENTER}>
-        <View style={styles.introContent}>
-          <Text style={styles.introLabel}>final round</Text>
+        <View accessibilityLiveRegion="polite" style={styles.introContent}>
+          <Text style={styles.introLabel}>
+            {round.isFinal ? "final round" : `round ${round.roundNumber} of ${totalRounds}`}
+          </Text>
           <Animated.View style={multStyle}>
-            <Text style={styles.introMult}>2×</Text>
+            <Text style={[styles.introMult, !round.isFinal && styles.introCount]}>
+              {round.isFinal ? "2×" : Math.max(1, secondsLeft)}
+            </Text>
           </Animated.View>
-          <Text style={styles.introSub}>Everything counts double. Including mistakes.</Text>
+          <Text style={styles.introSub}>
+            {round.isFinal ? "Everything counts double. Including mistakes." : "Get ready"}
+          </Text>
         </View>
       </Animated.View>
     </View>
@@ -451,6 +467,20 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.displayXl,
     letterSpacing: theme.tracking.display,
     lineHeight: 60,
+  },
+  introCount: {
+    color: theme.colors.accent,
+    fontVariant: ["tabular-nums"],
+  },
+  audioCard: {
+    width: "100%",
+    minHeight: 80,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
+    borderCurve: "continuous",
+    backgroundColor: theme.colors.surface,
   },
   introSub: {
     color: theme.colors.muted,

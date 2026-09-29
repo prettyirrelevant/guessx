@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { useSession } from "@/lib/session";
 import { useRoomConnection, RoomConnectionProvider } from "@/lib/room-connection";
+import { mediaLoader, useMediaPrefetch } from "@/lib/media";
 import { ResultsScreen } from "@/components/results-screen";
 import { ProfileSetup } from "@/components/profile-setup";
 import { PreparingScreen } from "@/components/preparing-screen";
@@ -49,6 +50,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
 function RoomContent() {
   const { snapshot, status, error } = useRoomConnection();
+  useMediaPrefetch(mediaLoader, snapshot?.prefetch);
 
   if (status === "not_found") {
     return (
