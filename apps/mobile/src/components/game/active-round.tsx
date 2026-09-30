@@ -11,7 +11,7 @@ import Animated, {
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Image } from "expo-image";
-import { useRoomConnection, useSecondsLeft } from "@guessx/server/react";
+import { useRoomConnection } from "@guessx/server/react";
 import { useRoundMedia } from "@guessx/server/media";
 import type { ActiveRound, PublicPlayer, PublicRoom } from "@guessx/game";
 
@@ -238,7 +238,6 @@ function LeadIn({ round, totalRounds }: { round: ActiveRound; totalRounds: numbe
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const pulse = useSharedValue(1);
-  const secondsLeft = useSecondsLeft(round.startedAt);
 
   useEffect(() => {
     if (reduced || !round.isFinal) return;
@@ -257,14 +256,16 @@ function LeadIn({ round, totalRounds }: { round: ActiveRound; totalRounds: numbe
           <Text style={styles.introLabel}>
             {round.isFinal ? "final round" : `round ${round.roundNumber} of ${totalRounds}`}
           </Text>
-          <Animated.View style={multStyle}>
-            <Text style={[styles.introMult, !round.isFinal && styles.introCount]}>
-              {round.isFinal ? "2×" : Math.max(1, secondsLeft)}
-            </Text>
-          </Animated.View>
-          <Text style={styles.introSub}>
-            {round.isFinal ? "Everything counts double. Including mistakes." : "Get ready"}
-          </Text>
+          {round.isFinal ? (
+            <>
+              <Animated.View style={multStyle}>
+                <Text style={styles.introMult}>2×</Text>
+              </Animated.View>
+              <Text style={styles.introSub}>Everything counts double. Including mistakes.</Text>
+            </>
+          ) : (
+            <Text style={styles.introTitle}>Get ready</Text>
+          )}
         </View>
       </Animated.View>
     </View>
@@ -468,9 +469,11 @@ const styles = StyleSheet.create((theme) => ({
     letterSpacing: theme.tracking.display,
     lineHeight: 60,
   },
-  introCount: {
+  introTitle: {
     color: theme.colors.accent,
-    fontVariant: ["tabular-nums"],
+    fontFamily: theme.fonts.display,
+    fontSize: theme.fontSize.displayLg,
+    letterSpacing: theme.tracking.display,
   },
   audioCard: {
     width: "100%",

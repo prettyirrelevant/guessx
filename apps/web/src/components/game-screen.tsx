@@ -6,7 +6,7 @@ import { Check } from "lucide-react";
 import type { ActiveRound, PublicAnswer, PublicPlayer, PublicRoom } from "@guessx/game";
 
 import { getAvatarUrl } from "@/lib/session";
-import { useRoomConnection, useSecondsLeft } from "@/lib/room-connection";
+import { useRoomConnection } from "@/lib/room-connection";
 import { mediaLoader, useRoundMedia } from "@/lib/media";
 
 import { TimerBar } from "./timer-bar";
@@ -213,20 +213,20 @@ function ActiveRound({
 }
 
 function LeadIn({ round, totalRounds }: { round: ActiveRound; totalRounds: number }) {
-  const secondsLeft = useSecondsLeft(round.startedAt);
-
   return (
     <div className={styles.finalIntro}>
       <div className={styles.finalIntroContent} role="status">
         <div className={styles.finalLabel}>
           {round.isFinal ? "final round" : `round ${round.roundNumber} of ${totalRounds}`}
         </div>
-        <div className={round.isFinal ? styles.finalMultiplier : styles.leadInCount}>
-          {round.isFinal ? "2×" : Math.max(1, secondsLeft)}
-        </div>
-        <p className={styles.finalSubtext}>
-          {round.isFinal ? "everything counts double. including mistakes." : "get ready"}
-        </p>
+        {round.isFinal ? (
+          <>
+            <div className={styles.finalMultiplier}>2×</div>
+            <p className={styles.finalSubtext}>everything counts double. including mistakes.</p>
+          </>
+        ) : (
+          <div className={styles.leadInTitle}>get ready</div>
+        )}
       </div>
     </div>
   );
