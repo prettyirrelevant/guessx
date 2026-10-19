@@ -1,6 +1,7 @@
 import localFont from "next/font/local";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
+import { ServiceWorker } from "@/components/service-worker";
 import { Footer } from "@/components/footer";
 
 import "./globals.css";
@@ -23,6 +24,13 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://guessx.enio.la"),
   icons: {
     icon: "/logo.svg",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  applicationName: "guessX",
+  appleWebApp: {
+    capable: true,
+    title: "guessX",
+    statusBarStyle: "black-translucent",
   },
   title: "guessX — the multiplayer guessing game",
   description:
@@ -56,12 +64,18 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
+  colorScheme: "dark",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${syne.variable} ${dmMono.variable}`}>
       <body>
         {children}
         <Footer />
+        <ServiceWorker />
       </body>
     </html>
   );
